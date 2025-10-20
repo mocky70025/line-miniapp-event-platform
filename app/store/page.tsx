@@ -19,7 +19,7 @@ export default function StoreHomePage() {
         // 出店者用のLIFF IDで初期化
         const success = await liffManager.init('store');
         if (success && liffManager.isLoggedIn()) {
-          const profile = await liffManager.getProfile();
+          const profile = await liffManager.getUserProfile();
           setUser(profile);
           setIsLoggedIn(true);
         } else {
