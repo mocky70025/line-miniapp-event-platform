@@ -1,0 +1,42 @@
+{
+  "name": "line-miniapp-event-platform",
+  "version": "1.0.0",
+  "description": "LINEミニアプリ - イベント出店・主催プラットフォーム",
+  "main": "index.js",
+  "scripts": {
+    "dev": "next dev",
+    "dev:https": "vercel dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@line/liff": "^2.23.0",
+    "@supabase/supabase-js": "^2.45.0",
+    "@types/node": "^20.14.0",
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.0",
+    "@types/uuid": "^10.0.0",
+    "autoprefixer": "^10.4.0",
+    "lucide-react": "^0.400.0",
+    "next": "^14.2.0",
+    "openai": "^4.67.0",
+    "postcss": "^8.4.0",
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0",
+    "tailwindcss": "^3.4.0",
+    "typescript": "^5.5.0",
+    "uuid": "^10.0.0"
+  },
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^7.18.0",
+    "@typescript-eslint/parser": "^7.18.0",
+    "eslint": "^8.57.0",
+    "eslint-config-next": "^14.2.0",
+    "vercel": "^48.4.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
