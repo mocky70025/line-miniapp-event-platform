@@ -17,8 +17,19 @@ class LiffManager {
 
     try {
       const liffId = userType === 'store' 
-        ? process.env.NEXT_PUBLIC_LIFF_ID_STORE!
-        : process.env.NEXT_PUBLIC_LIFF_ID_ORGANIZER!;
+        ? process.env.NEXT_PUBLIC_LIFF_ID_STORE
+        : process.env.NEXT_PUBLIC_LIFF_ID_ORGANIZER;
+      
+      console.log('LIFF ID:', liffId);
+      console.log('User Type:', userType);
+      
+      if (!liffId || liffId === 'your_store_liff_id_here' || liffId === 'your_organizer_liff_id_here') {
+        console.warn('LIFF ID is not properly configured for user type:', userType);
+        console.warn('Please set the environment variables:');
+        console.warn('- NEXT_PUBLIC_LIFF_ID_STORE');
+        console.warn('- NEXT_PUBLIC_LIFF_ID_ORGANIZER');
+        return false;
+      }
       
       await liff.init({ liffId });
       this.isInitialized = true;

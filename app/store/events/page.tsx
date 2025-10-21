@@ -24,8 +24,12 @@ export default function StoreEventsPage() {
           const liffUser = await liffManager.getUserProfile();
           setUser(liffUser);
           setIsLoggedIn(true);
+        } else if (success) {
+          // LIFF初期化は成功したがログインしていない
+          console.log('LIFF initialized but not logged in');
         } else {
-          await liffManager.login('store');
+          // LIFF初期化に失敗
+          console.error('LIFF initialization failed');
         }
       } catch (error) {
         console.error('LIFF初期化エラー:', error);
@@ -60,6 +64,9 @@ export default function StoreEventsPage() {
           <h1 className="text-2xl font-bold mb-4">ログインが必要です</h1>
           <p className="text-gray-600 mb-6">
             イベント一覧を確認するには、LINEアカウントでログインしてください。
+          </p>
+          <p className="text-sm text-gray-500 mb-4">
+            環境変数が設定されていない場合は、設定画面で設定してください。
           </p>
           <Button onClick={() => liffManager.login('store')} className="w-full">
             LINEでログイン
