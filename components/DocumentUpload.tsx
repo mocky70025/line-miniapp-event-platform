@@ -1,209 +1,184 @@
 'use client';
 
-import { useState } from 'react';
-import { DocumentType } from '@/types';
+import { useState, useRef } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
-import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 
 interface DocumentUploadProps {
-  documentType: DocumentType;
-  label: string;
-  required?: boolean;
-  onUpload: (file: File) => Promise<void>;
-  onProcess: (file: File) => Promise<any>;
-  isProcessing?: boolean;
-  processingResult?: any;
+  title: string;
+  description: string;
+  required: boolean;
+  acceptedTypes?: string[];
+  maxSize?: number; // MB
+  onUpload: (file: File) => void;
+  uploadedFile?: File | null;
+  isUploading?: boolean;
 }
 
-export const DocumentUpload: React.FC<DocumentUploadProps> = ({
-  documentType,
-  label,
-  required = false,
+export default function DocumentUpload({
+  title,
+  description,
+  required,
+  acceptedTypes = ['image/*', 'application/pdf'],
+  maxSize = 5,
   onUpload,
-  onProcess,
-  isProcessing = false,
-  processingResult,
-}) => {
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
+  uploadedFile,
+  isUploading = false
+}: DocumentUploadProps) {
+  const [dragActive, setDragActive] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      // ファイルサイズチェック（5MB制限）
-      if (file.size > 5 * 1024 * 1024) {
-        setError('ファイルサイズは5MB以下にしてください');
-        return;
+  const handleDrag = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === 'dragenter' || e.type === 'dragover') {
+      setDragActive(true);
+    } else if (e.type === 'dragleave') {
+      setDragActive(false);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+    setError(null);
+
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      handleFile(e.dataTransfer.files[0]);
+    }
+  };
+
+  const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    setError(null);
+    
+    if (e.target.files && e.target.files[0]) {
+      handleFile(e.target.files[0]);
+    }
+  };
+
+  const handleFile = (file: File) => {
+    // ファイルサイズチェック
+    if (file.size > maxSize * 1024 * 1024) {
+      setError(`ファイルサイズが${maxSize}MBを超えています`);
+      return;
+    }
+
+    // ファイルタイプチェック
+    const isValidType = acceptedTypes.some(type => {
+      if (type.endsWith('/*')) {
+        return file.type.startsWith(type.slice(0, -1));
       }
+      return file.type === type;
+    });
 
-      // ファイル形式チェック
-      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'];
-      if (!allowedTypes.includes(file.type)) {
-        setError('JPEG、PNG、PDF形式のファイルのみアップロード可能です');
-        return;
-      }
-
-      setSelectedFile(file);
-      setError(null);
+    if (!isValidType) {
+      setError('対応していないファイル形式です');
+      return;
     }
+
+    onUpload(file);
   };
 
-  const handleUpload = async () => {
-    if (!selectedFile) return;
+  const openFileDialog = () => {
+    fileInputRef.current?.click();
+  };
 
-    try {
-      setIsUploading(true);
-      setError(null);
-      await onUpload(selectedFile);
-    } catch (error) {
-      console.error('アップロードエラー:', error);
-      setError(error instanceof Error ? error.message : 'アップロードに失敗しました');
-    } finally {
-      setIsUploading(false);
+  const removeFile = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
     }
-  };
-
-  const handleProcess = async () => {
-    if (!selectedFile) return;
-
-    try {
-      await onProcess(selectedFile);
-    } catch (error) {
-      console.error('処理エラー:', error);
-      setError(error instanceof Error ? error.message : '書類の処理に失敗しました');
-    }
-  };
-
-  const getStatusIcon = () => {
-    if (isProcessing) return '🔄';
-    if (processingResult?.validity?.is_valid) return '✅';
-    if (processingResult?.validity?.is_valid === false) return '❌';
-    return '📄';
-  };
-
-  const getStatusMessage = () => {
-    if (isProcessing) return 'AI処理中...';
-    if (processingResult?.validity?.is_valid) return '有効な書類です';
-    if (processingResult?.validity?.is_valid === false) {
-      return `無効な書類: ${processingResult.validity.issues?.join(', ')}`;
-    }
-    return 'アップロード待ち';
-  };
-
-  const getStatusColor = () => {
-    if (isProcessing) return 'text-blue-600';
-    if (processingResult?.validity?.is_valid) return 'text-green-600';
-    if (processingResult?.validity?.is_valid === false) return 'text-red-600';
-    return 'text-gray-600';
+    onUpload(null as any);
   };
 
   return (
-    <Card className="overflow-hidden">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="font-medium text-gray-900 flex items-center">
-          {getStatusIcon()} {label}
-          {required && <span className="text-red-500 ml-1">*</span>}
-        </h3>
-        <span className={`text-sm font-medium ${getStatusColor()}`}>
-          {getStatusMessage()}
-        </span>
-      </div>
-
-      {error && (
-        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-          <p className="text-red-600 text-sm">{error}</p>
-        </div>
-      )}
-
-      <div className="space-y-4">
+    <Card className="p-4">
+      <div className="space-y-3">
         <div>
-          <input
-            type="file"
-            accept=".pdf,.jpg,.jpeg,.png"
-            onChange={handleFileSelect}
-            className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100"
-          />
-          <p className="text-xs text-gray-500 mt-1">
-            PDF、JPG、PNG形式に対応（最大5MB）
-          </p>
+          <h3 className="font-medium">
+            {title}
+            {required && <span className="text-red-500 ml-1">*</span>}
+          </h3>
+          <p className="text-sm text-gray-600">{description}</p>
         </div>
 
-        {selectedFile && (
-          <div className="p-3 bg-gray-50 rounded-lg">
+        {uploadedFile ? (
+          <div className="border border-green-200 bg-green-50 rounded-lg p-3">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-900">{selectedFile.name}</p>
-                <p className="text-xs text-gray-500">
-                  {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
-                </p>
-              </div>
-              <div className="flex space-x-2">
-                <Button
-                  onClick={handleUpload}
-                  loading={isUploading}
-                  variant="secondary"
-                  size="sm"
-                >
-                  アップロード
-                </Button>
-                <Button
-                  onClick={handleProcess}
-                  loading={isProcessing}
-                  variant="primary"
-                  size="sm"
-                >
-                  AI処理
-                </Button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {processingResult && (
-          <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-            <h4 className="font-medium text-blue-900 mb-2">AI処理結果</h4>
-            
-            <div className="space-y-2 text-sm">
-              <div>
-                <span className="font-medium">信頼度:</span>
-                <span className="ml-2">
-                  {Math.round((processingResult.confidence_score || 0) * 100)}%
-                </span>
-              </div>
-              
-              {processingResult.validity?.expiration_date && (
-                <div>
-                  <span className="font-medium">有効期限:</span>
-                  <span className="ml-2">{processingResult.validity.expiration_date}</span>
+              <div className="flex items-center space-x-3">
+                <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                  <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
                 </div>
-              )}
-              
-              {processingResult.extracted_text && (
                 <div>
-                  <span className="font-medium">抽出テキスト:</span>
-                  <p className="mt-1 p-2 bg-white rounded border text-xs">
-                    {processingResult.extracted_text.slice(0, 200)}
-                    {processingResult.extracted_text.length > 200 && '...'}
+                  <p className="font-medium text-green-800">{uploadedFile.name}</p>
+                  <p className="text-sm text-green-600">
+                    {(uploadedFile.size / 1024 / 1024).toFixed(2)} MB
                   </p>
                 </div>
-              )}
-              
-              {processingResult.validity?.issues && processingResult.validity.issues.length > 0 && (
-                <div>
-                  <span className="font-medium text-red-700">問題点:</span>
-                  <ul className="mt-1 list-disc list-inside text-red-600">
-                    {processingResult.validity.issues.map((issue: string, index: number) => (
-                      <li key={index}>{issue}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
+              </div>
+              <Button
+                onClick={removeFile}
+                variant="secondary"
+                size="sm"
+                disabled={isUploading}
+              >
+                削除
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div
+            className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
+              dragActive
+                ? 'border-primary-400 bg-primary-50'
+                : 'border-gray-300 hover:border-gray-400'
+            }`}
+            onDragEnter={handleDrag}
+            onDragLeave={handleDrag}
+            onDragOver={handleDrag}
+            onDrop={handleDrop}
+          >
+            <div className="space-y-2">
+              <svg className="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              <div className="text-sm text-gray-600">
+                <p className="font-medium">ファイルをドラッグ&ドロップ</p>
+                <p>または</p>
+                <Button
+                  onClick={openFileDialog}
+                  variant="secondary"
+                  size="sm"
+                  disabled={isUploading}
+                >
+                  ファイルを選択
+                </Button>
+              </div>
+              <p className="text-xs text-gray-500">
+                対応形式: {acceptedTypes.join(', ')} (最大{maxSize}MB)
+              </p>
             </div>
           </div>
         )}
+
+        {error && (
+          <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded p-2">
+            {error}
+          </div>
+        )}
+
+        <input
+          ref={fileInputRef}
+          type="file"
+          className="hidden"
+          accept={acceptedTypes.join(',')}
+          onChange={handleFileInput}
+        />
       </div>
     </Card>
   );
-};
+}

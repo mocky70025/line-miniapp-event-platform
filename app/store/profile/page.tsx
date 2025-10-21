@@ -7,6 +7,7 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import DocumentUpload from '@/components/DocumentUpload';
 
 interface StoreProfile {
   id?: string;
@@ -21,6 +22,13 @@ interface StoreProfile {
   instagram?: string;
   twitter?: string;
   isVerified: boolean;
+  verificationStatus: 'pending' | 'approved' | 'rejected' | 'not_submitted';
+  documents: {
+    businessLicense?: File | null;
+    taxCertificate?: File | null;
+    insuranceCertificate?: File | null;
+    productPhotos?: File | null;
+  };
 }
 
 export default function StoreProfilePage() {
@@ -35,7 +43,14 @@ export default function StoreProfilePage() {
     website: '',
     instagram: '',
     twitter: '',
-    isVerified: false
+    isVerified: false,
+    verificationStatus: 'not_submitted',
+    documents: {
+      businessLicense: null,
+      taxCertificate: null,
+      insuranceCertificate: null,
+      productPhotos: null
+    }
   });
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -63,7 +78,14 @@ export default function StoreProfilePage() {
             website: 'https://example.com',
             instagram: '@sample_store',
             twitter: '@sample_store',
-            isVerified: false
+            isVerified: false,
+            verificationStatus: 'not_submitted',
+            documents: {
+              businessLicense: null,
+              taxCertificate: null,
+              insuranceCertificate: null,
+              productPhotos: null
+            }
           };
           
           setProfile(dummyProfile);
@@ -93,6 +115,62 @@ export default function StoreProfilePage() {
       alert('保存に失敗しました。もう一度お試しください。');
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleDocumentUpload = (documentType: keyof StoreProfile['documents']) => {
+    return (file: File | null) => {
+      setProfile(prev => ({
+        ...prev,
+        documents: {
+          ...prev.documents,
+          [documentType]: file
+        }
+      }));
+    };
+  };
+
+  const handleSubmitForVerification = async () => {
+    // 必須書類のチェック
+    const requiredDocs = ['businessLicense', 'taxCertificate'];
+    const missingDocs = requiredDocs.filter(doc => !profile.documents[doc as keyof StoreProfile['documents']]);
+    
+    if (missingDocs.length > 0) {
+      alert('必須書類が不足しています。営業許可証と納税証明書をアップロードしてください。');
+      return;
+    }
+
+    try {
+      setIsSaving(true);
+      // 認証申請のAPI呼び出し
+      console.log('認証申請:', profile);
+      
+      setProfile(prev => ({
+        ...prev,
+        verificationStatus: 'pending'
+      }));
+      
+      alert('認証申請を送信しました。審査結果は数営業日以内にお知らせします。');
+    } catch (error) {
+      console.error('認証申請エラー:', error);
+      alert('認証申請に失敗しました。もう一度お試しください。');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const getVerificationStatusText = () => {
+    switch (profile.verificationStatus) {
+      case 'not_submitted':
+        return { text: '未申請', color: 'text-gray-600', bg: 'bg-gray-100' };
+      case 'pending':
+        return { text: '審査中', color: 'text-yellow-600', bg: 'bg-yellow-100' };
+      case 'approved':
+        return { text: '認証済み', color: 'text-green-600', bg: 'bg-green-100' };
+      case 'rejected':
+        return { text: '認証拒否', color: 'text-red-600', bg: 'bg-red-100' };
+      default:
+        return { text: '不明', color: 'text-gray-600', bg: 'bg-gray-100' };
     }
   };
 
@@ -258,19 +336,110 @@ export default function StoreProfilePage() {
           </div>
         </Card>
 
+        {/* 書類アップロード */}
+        <Card className="p-6">
+          <h2 className="text-lg font-bold mb-4">必要書類</h2>
+          <div className="space-y-4">
+            <DocumentUpload
+              title="営業許可証"
+              description="営業許可証のコピーをアップロードしてください"
+              required={true}
+              onUpload={handleDocumentUpload('businessLicense')}
+              uploadedFile={profile.documents.businessLicense}
+              isUploading={isSaving}
+            />
+            
+            <DocumentUpload
+              title="納税証明書"
+              description="最新の納税証明書をアップロードしてください"
+              required={true}
+              onUpload={handleDocumentUpload('taxCertificate')}
+              uploadedFile={profile.documents.taxCertificate}
+              isUploading={isSaving}
+            />
+            
+            <DocumentUpload
+              title="保険加入証明書"
+              description="商品賠償責任保険などの加入証明書（任意）"
+              required={false}
+              onUpload={handleDocumentUpload('insuranceCertificate')}
+              uploadedFile={profile.documents.insuranceCertificate}
+              isUploading={isSaving}
+            />
+            
+            <DocumentUpload
+              title="商品写真"
+              description="販売予定の商品写真（3枚以上、任意）"
+              required={false}
+              acceptedTypes={['image/*']}
+              onUpload={handleDocumentUpload('productPhotos')}
+              uploadedFile={profile.documents.productPhotos}
+              isUploading={isSaving}
+            />
+          </div>
+        </Card>
+
+        {/* 認証状況 */}
         <Card className="p-6">
           <h2 className="text-lg font-bold mb-4">認証状況</h2>
-          <div className="flex items-center space-x-3">
-            <div className={`w-4 h-4 rounded-full ${profile.isVerified ? 'bg-green-500' : 'bg-gray-300'}`}></div>
-            <span className={profile.isVerified ? 'text-green-600 font-medium' : 'text-gray-600'}>
-              {profile.isVerified ? '認証済み' : '未認証'}
-            </span>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className={`w-4 h-4 rounded-full ${profile.isVerified ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                <span className="font-medium">認証ステータス</span>
+              </div>
+              <span className={`px-3 py-1 rounded-full text-sm font-medium ${getVerificationStatusText().bg} ${getVerificationStatusText().color}`}>
+                {getVerificationStatusText().text}
+              </span>
+            </div>
+            
+            {profile.verificationStatus === 'not_submitted' && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <p className="text-sm text-blue-800 mb-3">
+                  認証を受けることで、より多くのイベントに参加できるようになります。
+                </p>
+                <Button
+                  onClick={handleSubmitForVerification}
+                  disabled={isSaving}
+                  className="w-full"
+                >
+                  {isSaving ? '申請中...' : '認証申請を送信'}
+                </Button>
+              </div>
+            )}
+            
+            {profile.verificationStatus === 'pending' && (
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                <p className="text-sm text-yellow-800">
+                  認証申請を審査中です。結果は数営業日以内にお知らせします。
+                </p>
+              </div>
+            )}
+            
+            {profile.verificationStatus === 'approved' && (
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                <p className="text-sm text-green-800">
+                  認証が完了しました！すべてのイベントに参加できます。
+                </p>
+              </div>
+            )}
+            
+            {profile.verificationStatus === 'rejected' && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                <p className="text-sm text-red-800 mb-3">
+                  認証が拒否されました。書類を確認して再度申請してください。
+                </p>
+                <Button
+                  onClick={handleSubmitForVerification}
+                  disabled={isSaving}
+                  variant="secondary"
+                  className="w-full"
+                >
+                  {isSaving ? '申請中...' : '再申請'}
+                </Button>
+              </div>
+            )}
           </div>
-          {!profile.isVerified && (
-            <p className="text-sm text-gray-500 mt-2">
-              認証には営業許可証などの書類提出が必要です。
-            </p>
-          )}
         </Card>
 
         {/* 保存ボタン */}
