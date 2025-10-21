@@ -14,58 +14,80 @@ export interface User {
   line_user_id: string;
   user_type: 'store' | 'organizer';
   name: string;
-  gender?: 'male' | 'female' | 'other';
-  age?: number;
   phone?: string;
   email?: string;
   created_at: string;
   updated_at: string;
 }
 
-export interface StoreUser {
+export interface StoreProfile {
   id: string;
   user_id: string;
-  genre?: string;
+  store_name: string;
+  contact_name: string;
+  phone?: string;
+  email?: string;
+  address?: string;
+  business_type?: string;
+  description?: string;
+  website?: string;
+  instagram?: string;
+  twitter?: string;
+  is_verified: boolean;
+  verification_status: 'not_submitted' | 'pending' | 'approved' | 'rejected';
   created_at: string;
   updated_at: string;
 }
 
-export interface OrganizerUser {
+export interface OrganizerProfile {
   id: string;
   user_id: string;
-  company_name?: string;
+  organizer_name: string;
+  contact_name: string;
+  phone?: string;
+  email?: string;
+  address?: string;
+  organization_type?: string;
+  description?: string;
+  website?: string;
+  instagram?: string;
+  twitter?: string;
+  is_verified: boolean;
+  verification_status: 'not_submitted' | 'pending' | 'approved' | 'rejected';
   created_at: string;
   updated_at: string;
 }
 
-export interface Document {
+export interface StoreDocument {
   id: string;
-  user_id: string;
-  document_type: 'business_license' | 'vehicle_inspection' | 'inspection_record' | 'pl_insurance' | 'fire_layout';
+  store_profile_id: string;
+  document_type: 'business_license' | 'tax_certificate' | 'insurance_certificate' | 'product_photos';
   file_name: string;
   file_path: string;
   file_size?: number;
   mime_type?: string;
-  ai_processed: boolean;
-  ai_extracted_data?: any;
   created_at: string;
   updated_at: string;
 }
 
 export interface Event {
   id: string;
-  organizer_id: string;
+  organizer_profile_id: string;
   title: string;
   description?: string;
-  main_image_url?: string;
-  event_date: string;
+  date: string;
   start_time?: string;
   end_time?: string;
   location?: string;
   address?: string;
   max_stores?: number;
+  fee: number;
+  category?: string;
+  requirements?: string[];
+  contact?: string;
+  is_public: boolean;
   application_deadline?: string;
-  status: 'draft' | 'published' | 'cancelled' | 'completed';
+  status: 'draft' | 'published' | 'closed' | 'completed';
   created_at: string;
   updated_at: string;
 }
@@ -73,9 +95,26 @@ export interface Event {
 export interface EventApplication {
   id: string;
   event_id: string;
-  store_user_id: string;
+  store_profile_id: string;
+  store_name: string;
+  contact_name: string;
+  phone?: string;
+  email?: string;
+  product_description?: string;
   status: 'pending' | 'approved' | 'rejected' | 'cancelled';
-  application_data?: any;
+  applied_at: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ApplicationDocument {
+  id: string;
+  application_id: string;
+  document_type: 'business_license' | 'product_photos';
+  file_name: string;
+  file_path: string;
+  file_size?: number;
+  mime_type?: string;
   created_at: string;
   updated_at: string;
 }
@@ -126,110 +165,121 @@ export class SupabaseService {
     return data;
   }
 
-  // 店舗ユーザー関連
-  async createStoreUser(storeUserData: Partial<StoreUser>): Promise<StoreUser | null> {
+  // 店舗プロフィール関連
+  async getStoreProfileByUserId(userId: string): Promise<StoreProfile | null> {
     const { data, error } = await supabase
-      .from('store_users')
-      .insert([storeUserData])
-      .select()
-      .single();
-
-    if (error) {
-      console.error('Error creating store user:', error);
-      return null;
-    }
-    return data;
-  }
-
-  async getStoreUserByUserId(userId: string): Promise<StoreUser | null> {
-    const { data, error } = await supabase
-      .from('store_users')
+      .from('store_profiles')
       .select('*')
       .eq('user_id', userId)
       .single();
 
     if (error) {
-      console.error('Error fetching store user:', error);
+      console.error('Error fetching store profile:', error);
       return null;
     }
     return data;
   }
 
-  // 主催ユーザー関連
-  async createOrganizerUser(organizerUserData: Partial<OrganizerUser>): Promise<OrganizerUser | null> {
+  async createStoreProfile(profileData: Partial<StoreProfile>): Promise<StoreProfile | null> {
     const { data, error } = await supabase
-      .from('organizer_users')
-      .insert([organizerUserData])
+      .from('store_profiles')
+      .insert([profileData])
       .select()
       .single();
 
     if (error) {
-      console.error('Error creating organizer user:', error);
+      console.error('Error creating store profile:', error);
       return null;
     }
     return data;
   }
 
-  async getOrganizerUserByUserId(userId: string): Promise<OrganizerUser | null> {
+  async updateStoreProfile(profileId: string, updates: Partial<StoreProfile>): Promise<StoreProfile | null> {
     const { data, error } = await supabase
-      .from('organizer_users')
+      .from('store_profiles')
+      .update(updates)
+      .eq('id', profileId)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error updating store profile:', error);
+      return null;
+    }
+    return data;
+  }
+
+  // 主催者プロフィール関連
+  async getOrganizerProfileByUserId(userId: string): Promise<OrganizerProfile | null> {
+    const { data, error } = await supabase
+      .from('organizer_profiles')
       .select('*')
       .eq('user_id', userId)
       .single();
 
     if (error) {
-      console.error('Error fetching organizer user:', error);
+      console.error('Error fetching organizer profile:', error);
       return null;
     }
     return data;
   }
 
-  // 書類関連
-  async uploadDocument(documentData: Partial<Document>): Promise<Document | null> {
+  async createOrganizerProfile(profileData: Partial<OrganizerProfile>): Promise<OrganizerProfile | null> {
     const { data, error } = await supabase
-      .from('documents')
+      .from('organizer_profiles')
+      .insert([profileData])
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error creating organizer profile:', error);
+      return null;
+    }
+    return data;
+  }
+
+  async updateOrganizerProfile(profileId: string, updates: Partial<OrganizerProfile>): Promise<OrganizerProfile | null> {
+    const { data, error } = await supabase
+      .from('organizer_profiles')
+      .update(updates)
+      .eq('id', profileId)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error updating organizer profile:', error);
+      return null;
+    }
+    return data;
+  }
+
+  // 店舗書類関連
+  async uploadStoreDocument(documentData: Partial<StoreDocument>): Promise<StoreDocument | null> {
+    const { data, error } = await supabase
+      .from('store_documents')
       .insert([documentData])
       .select()
       .single();
 
     if (error) {
-      console.error('Error uploading document:', error);
+      console.error('Error uploading store document:', error);
       return null;
     }
     return data;
   }
 
-  async getUserDocuments(userId: string): Promise<Document[]> {
+  async getStoreDocuments(storeProfileId: string): Promise<StoreDocument[]> {
     const { data, error } = await supabase
-      .from('documents')
+      .from('store_documents')
       .select('*')
-      .eq('user_id', userId)
+      .eq('store_profile_id', storeProfileId)
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('Error fetching documents:', error);
+      console.error('Error fetching store documents:', error);
       return [];
     }
     return data || [];
-  }
-
-  async updateDocumentAIProcessing(documentId: string, aiData: any): Promise<Document | null> {
-    const { data, error } = await supabase
-      .from('documents')
-      .update({
-        ai_processed: true,
-        ai_extracted_data: aiData,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', documentId)
-      .select()
-      .single();
-
-    if (error) {
-      console.error('Error updating document AI processing:', error);
-      return null;
-    }
-    return data;
   }
 
   // イベント関連
@@ -238,11 +288,26 @@ export class SupabaseService {
       .from('events')
       .select('*')
       .eq('status', 'published')
-      .gte('event_date', new Date().toISOString().split('T')[0])
-      .order('event_date', { ascending: true });
+      .eq('is_public', true)
+      .gte('date', new Date().toISOString().split('T')[0])
+      .order('date', { ascending: true });
 
     if (error) {
       console.error('Error fetching events:', error);
+      return [];
+    }
+    return data || [];
+  }
+
+  async getEventsByOrganizer(organizerProfileId: string): Promise<Event[]> {
+    const { data, error } = await supabase
+      .from('events')
+      .select('*')
+      .eq('organizer_profile_id', organizerProfileId)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching organizer events:', error);
       return [];
     }
     return data || [];
@@ -306,43 +371,10 @@ export class SupabaseService {
     return data;
   }
 
-  async getUserEventApplications(storeUserId: string): Promise<EventApplication[]> {
-    const { data, error } = await supabase
-      .from('event_applications')
-      .select(`
-        *,
-        events (
-          id,
-          title,
-          event_date,
-          location
-        )
-      `)
-      .eq('store_user_id', storeUserId)
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      console.error('Error fetching event applications:', error);
-      return [];
-    }
-    return data || [];
-  }
-
   async getEventApplications(eventId: string): Promise<EventApplication[]> {
     const { data, error } = await supabase
       .from('event_applications')
-      .select(`
-        *,
-        store_users (
-          id,
-          user_id,
-          users (
-            name,
-            phone,
-            email
-          )
-        )
-      `)
+      .select('*')
       .eq('event_id', eventId)
       .order('created_at', { ascending: false });
 
@@ -353,21 +385,70 @@ export class SupabaseService {
     return data || [];
   }
 
-  // 利用規約同意
-  async recordTermsAgreement(userId: string, termsVersion: string, ipAddress?: string): Promise<boolean> {
-    const { error } = await supabase
-      .from('terms_agreements')
-      .insert([{
-        user_id: userId,
-        terms_version: termsVersion,
-        ip_address: ipAddress,
-      }]);
+  async updateEventApplication(applicationId: string, updates: Partial<EventApplication>): Promise<EventApplication | null> {
+    const { data, error } = await supabase
+      .from('event_applications')
+      .update(updates)
+      .eq('id', applicationId)
+      .select()
+      .single();
 
     if (error) {
-      console.error('Error recording terms agreement:', error);
-      return false;
+      console.error('Error updating event application:', error);
+      return null;
     }
-    return true;
+    return data;
+  }
+
+  async getUserEventApplications(storeProfileId: string): Promise<EventApplication[]> {
+    const { data, error } = await supabase
+      .from('event_applications')
+      .select(`
+        *,
+        events (
+          id,
+          title,
+          date,
+          location
+        )
+      `)
+      .eq('store_profile_id', storeProfileId)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching user event applications:', error);
+      return [];
+    }
+    return data || [];
+  }
+
+  // 申込書類関連
+  async uploadApplicationDocument(documentData: Partial<ApplicationDocument>): Promise<ApplicationDocument | null> {
+    const { data, error } = await supabase
+      .from('application_documents')
+      .insert([documentData])
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error uploading application document:', error);
+      return null;
+    }
+    return data;
+  }
+
+  async getApplicationDocuments(applicationId: string): Promise<ApplicationDocument[]> {
+    const { data, error } = await supabase
+      .from('application_documents')
+      .select('*')
+      .eq('application_id', applicationId)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching application documents:', error);
+      return [];
+    }
+    return data || [];
   }
 }
 
