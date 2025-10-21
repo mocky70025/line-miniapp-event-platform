@@ -3,36 +3,24 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { liffManager } from '@/lib/liff';
+import { useStoreProfile } from '@/hooks/useProfile';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import DocumentUpload from '@/components/DocumentUpload';
 
-interface StoreProfile {
-  id?: string;
-  storeName: string;
-  contactName: string;
-  phone: string;
-  email: string;
-  address: string;
-  businessType: string;
-  description: string;
-  website?: string;
-  instagram?: string;
-  twitter?: string;
-  isVerified: boolean;
-  verificationStatus: 'pending' | 'approved' | 'rejected' | 'not_submitted';
-  documents: {
-    businessLicense?: File | null;
-    taxCertificate?: File | null;
-    insuranceCertificate?: File | null;
-    productPhotos?: File | null;
-  };
-}
-
 export default function StoreProfilePage() {
-  const [profile, setProfile] = useState<StoreProfile>({
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [user, setUser] = useState<any>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const router = useRouter();
+
+  // フックを使用してプロフィールを管理
+  const { profile, loading, error, saveProfile } = useStoreProfile();
+
+  // ローカル状態
+  const [localProfile, setLocalProfile] = useState({
     storeName: '',
     contactName: '',
     phone: '',
@@ -43,72 +31,70 @@ export default function StoreProfilePage() {
     website: '',
     instagram: '',
     twitter: '',
-    isVerified: false,
-    verificationStatus: 'not_submitted',
     documents: {
-      businessLicense: null,
-      taxCertificate: null,
-      insuranceCertificate: null,
-      productPhotos: null
+      businessLicense: null as File | null,
+      taxCertificate: null as File | null,
+      insuranceCertificate: null as File | null,
+      productPhotos: null as File | null
     }
   });
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
-  const [user, setUser] = useState<any>(null);
-  const router = useRouter();
 
   useEffect(() => {
-    const loadProfile = async () => {
+    const initLiff = async () => {
       try {
-        // LIFFユーザー情報を取得
-        if (liffManager.isLoggedIn()) {
+        const success = await liffManager.init('store');
+        if (success && liffManager.isLoggedIn()) {
           const liffUser = await liffManager.getUserProfile();
           setUser(liffUser);
-          
-          // 実際のプロフィールデータを取得（現在は空の状態）
-          const currentProfile: StoreProfile = {
-            id: undefined,
-            storeName: '',
-            contactName: liffUser.displayName,
-            phone: '',
-            email: '',
-            address: '',
-            businessType: '',
-            description: '',
-            website: '',
-            instagram: '',
-            twitter: '',
-            isVerified: false,
-            verificationStatus: 'not_submitted',
-            documents: {
-              businessLicense: null,
-              taxCertificate: null,
-              insuranceCertificate: null,
-              productPhotos: null
-            }
-          };
-          
-          setProfile(currentProfile);
+          setIsLoggedIn(true);
+        } else {
+          await liffManager.login('store');
         }
       } catch (error) {
-        console.error('プロフィール読み込みエラー:', error);
-      } finally {
-        setIsLoading(false);
+        console.error('LIFF初期化エラー:', error);
       }
     };
 
-    loadProfile();
+    initLiff();
   }, []);
+
+  // プロフィールデータをローカル状態に反映
+  useEffect(() => {
+    if (profile) {
+      setLocalProfile(prev => ({
+        ...prev,
+        storeName: profile.store_name || '',
+        contactName: profile.contact_name || '',
+        phone: profile.phone || '',
+        email: profile.email || '',
+        address: profile.address || '',
+        businessType: profile.business_type || '',
+        description: profile.description || '',
+        website: profile.website || '',
+        instagram: profile.instagram || '',
+        twitter: profile.twitter || '',
+      }));
+    }
+  }, [profile]);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
 
     try {
-      // 実際のAPI呼び出し
-      console.log('保存するプロフィール:', profile);
+      await saveProfile({
+        store_name: localProfile.storeName,
+        contact_name: localProfile.contactName,
+        phone: localProfile.phone,
+        email: localProfile.email,
+        address: localProfile.address,
+        business_type: localProfile.businessType,
+        description: localProfile.description,
+        website: localProfile.website,
+        instagram: localProfile.instagram,
+        twitter: localProfile.twitter,
+      });
       
-      // 成功時の処理
       alert('プロフィールを保存しました！');
     } catch (error) {
       console.error('保存エラー:', error);
@@ -118,9 +104,9 @@ export default function StoreProfilePage() {
     }
   };
 
-  const handleDocumentUpload = (documentType: keyof StoreProfile['documents']) => {
+  const handleDocumentUpload = (documentType: keyof typeof localProfile.documents) => {
     return (file: File | null) => {
-      setProfile(prev => ({
+      setLocalProfile(prev => ({
         ...prev,
         documents: {
           ...prev.documents,
@@ -133,7 +119,7 @@ export default function StoreProfilePage() {
   const handleSubmitForVerification = async () => {
     // 必須書類のチェック
     const requiredDocs = ['businessLicense', 'taxCertificate'];
-    const missingDocs = requiredDocs.filter(doc => !profile.documents[doc as keyof StoreProfile['documents']]);
+    const missingDocs = requiredDocs.filter(doc => !localProfile.documents[doc as keyof typeof localProfile.documents]);
     
     if (missingDocs.length > 0) {
       alert('必須書類が不足しています。営業許可証と納税証明書をアップロードしてください。');
@@ -142,13 +128,9 @@ export default function StoreProfilePage() {
 
     try {
       setIsSaving(true);
-      // 認証申請のAPI呼び出し
-      console.log('認証申請:', profile);
-      
-      setProfile(prev => ({
-        ...prev,
-        verificationStatus: 'pending'
-      }));
+      await saveProfile({
+        verification_status: 'pending'
+      });
       
       alert('認証申請を送信しました。審査結果は数営業日以内にお知らせします。');
     } catch (error) {
@@ -160,7 +142,9 @@ export default function StoreProfilePage() {
   };
 
   const getVerificationStatusText = () => {
-    switch (profile.verificationStatus) {
+    if (!profile) return { text: '不明', color: 'text-gray-600', bg: 'bg-gray-100' };
+    
+    switch (profile.verification_status) {
       case 'not_submitted':
         return { text: '未申請', color: 'text-gray-600', bg: 'bg-gray-100' };
       case 'pending':
@@ -174,7 +158,23 @@ export default function StoreProfilePage() {
     }
   };
 
-  if (isLoading) {
+  if (!isLoggedIn) {
+    return (
+      <div className="flex items-center justify-center min-h-screen p-4">
+        <Card className="w-full max-w-md text-center">
+          <h1 className="text-2xl font-bold mb-4">ログインが必要です</h1>
+          <p className="text-gray-600 mb-6">
+            プロフィール設定を行うには、LINEアカウントでログインしてください。
+          </p>
+          <Button onClick={() => liffManager.login('store')} className="w-full">
+            LINEでログイン
+          </Button>
+        </Card>
+      </div>
+    );
+  }
+
+  if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <LoadingSpinner />
@@ -182,50 +182,34 @@ export default function StoreProfilePage() {
     );
   }
 
-  return (
-    <div className="p-4 space-y-6">
-      {/* ヘッダー */}
-      <div className="flex items-center justify-between">
-        <Button 
-          onClick={() => router.back()}
-          variant="secondary"
-        >
-          ← 戻る
-        </Button>
-        <h1 className="text-xl font-bold">プロフィール設定</h1>
-        <div></div>
-      </div>
-
-      {/* LINEユーザー情報 */}
-      {user && (
-        <Card className="p-4">
-          <h2 className="font-bold mb-3">LINEアカウント情報</h2>
-          <div className="flex items-center space-x-3">
-            {user.pictureUrl && (
-              <img 
-                src={user.pictureUrl} 
-                alt="プロフィール画像" 
-                className="w-12 h-12 rounded-full"
-              />
-            )}
-            <div>
-              <p className="font-medium">{user.displayName}</p>
-              <p className="text-sm text-gray-500">ID: {user.userId}</p>
-            </div>
-          </div>
+  if (error) {
+    return (
+      <div className="p-4">
+        <Card className="text-center py-8">
+          <h2 className="text-xl font-bold mb-4">エラーが発生しました</h2>
+          <p className="text-gray-600 mb-4">{error}</p>
+          <Button onClick={() => router.back()}>
+            戻る
+          </Button>
         </Card>
-      )}
+      </div>
+    );
+  }
 
-      {/* プロフィール設定フォーム */}
+  return (
+    <div className="min-h-screen bg-gray-100 p-4">
+      <h1 className="text-2xl font-bold mb-6 text-center">プロフィール設定</h1>
+
       <form onSubmit={handleSave} className="space-y-6">
+        {/* 基本情報 */}
         <Card className="p-6">
-          <h2 className="text-lg font-bold mb-4">店舗基本情報</h2>
+          <h2 className="text-lg font-bold mb-4">基本情報</h2>
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium mb-2">店舗名 *</label>
               <Input
-                value={profile.storeName}
-                onChange={(e) => setProfile({...profile, storeName: e.target.value})}
+                value={localProfile.storeName}
+                onChange={(e) => setLocalProfile({...localProfile, storeName: e.target.value})}
                 placeholder="店舗名を入力してください"
                 className="placeholder:text-gray-400"
                 required
@@ -235,8 +219,8 @@ export default function StoreProfilePage() {
             <div>
               <label className="block text-sm font-medium mb-2">担当者名 *</label>
               <Input
-                value={profile.contactName}
-                onChange={(e) => setProfile({...profile, contactName: e.target.value})}
+                value={localProfile.contactName}
+                onChange={(e) => setLocalProfile({...localProfile, contactName: e.target.value})}
                 placeholder="担当者名を入力してください"
                 className="placeholder:text-gray-400"
                 required
@@ -246,8 +230,8 @@ export default function StoreProfilePage() {
             <div>
               <label className="block text-sm font-medium mb-2">電話番号 *</label>
               <Input
-                value={profile.phone}
-                onChange={(e) => setProfile({...profile, phone: e.target.value})}
+                value={localProfile.phone}
+                onChange={(e) => setLocalProfile({...localProfile, phone: e.target.value})}
                 placeholder="090-1234-5678"
                 className="placeholder:text-gray-400"
                 required
@@ -258,8 +242,8 @@ export default function StoreProfilePage() {
               <label className="block text-sm font-medium mb-2">メールアドレス *</label>
               <Input
                 type="email"
-                value={profile.email}
-                onChange={(e) => setProfile({...profile, email: e.target.value})}
+                value={localProfile.email}
+                onChange={(e) => setLocalProfile({...localProfile, email: e.target.value})}
                 placeholder="example@email.com"
                 className="placeholder:text-gray-400"
                 required
@@ -269,8 +253,8 @@ export default function StoreProfilePage() {
             <div>
               <label className="block text-sm font-medium mb-2">住所 *</label>
               <Input
-                value={profile.address}
-                onChange={(e) => setProfile({...profile, address: e.target.value})}
+                value={localProfile.address}
+                onChange={(e) => setLocalProfile({...localProfile, address: e.target.value})}
                 placeholder="東京都渋谷区道玄坂1-2-3"
                 className="placeholder:text-gray-400"
                 required
@@ -278,28 +262,21 @@ export default function StoreProfilePage() {
             </div>
             
             <div>
-              <label className="block text-sm font-medium mb-2">事業種別 *</label>
-              <select
-                value={profile.businessType}
-                onChange={(e) => setProfile({...profile, businessType: e.target.value})}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              <label className="block text-sm font-medium mb-2">業種 *</label>
+              <Input
+                value={localProfile.businessType}
+                onChange={(e) => setLocalProfile({...localProfile, businessType: e.target.value})}
+                placeholder="例: ハンドメイドアクセサリー、食品販売"
+                className="placeholder:text-gray-400"
                 required
-              >
-                <option value="">事業種別を選択してください</option>
-                <option value="food">食品・飲料</option>
-                <option value="clothing">衣類・ファッション</option>
-                <option value="handmade">手作り・クラフト</option>
-                <option value="antique">古着・アンティーク</option>
-                <option value="general">雑貨・その他</option>
-                <option value="service">サービス業</option>
-              </select>
+              />
             </div>
             
             <div>
               <label className="block text-sm font-medium mb-2">店舗説明 *</label>
               <textarea
-                value={profile.description}
-                onChange={(e) => setProfile({...profile, description: e.target.value})}
+                value={localProfile.description}
+                onChange={(e) => setLocalProfile({...localProfile, description: e.target.value})}
                 placeholder="店舗や商品について詳しく説明してください"
                 className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent h-24 resize-none placeholder:text-gray-400"
                 required
@@ -308,14 +285,15 @@ export default function StoreProfilePage() {
           </div>
         </Card>
 
+        {/* SNS・ウェブサイト */}
         <Card className="p-6">
           <h2 className="text-lg font-bold mb-4">SNS・ウェブサイト</h2>
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium mb-2">ウェブサイト</label>
               <Input
-                value={profile.website}
-                onChange={(e) => setProfile({...profile, website: e.target.value})}
+                value={localProfile.website}
+                onChange={(e) => setLocalProfile({...localProfile, website: e.target.value})}
                 placeholder="https://example.com"
                 className="placeholder:text-gray-400"
                 type="url"
@@ -325,18 +303,18 @@ export default function StoreProfilePage() {
             <div>
               <label className="block text-sm font-medium mb-2">Instagram</label>
               <Input
-                value={profile.instagram}
-                onChange={(e) => setProfile({...profile, instagram: e.target.value})}
+                value={localProfile.instagram}
+                onChange={(e) => setLocalProfile({...localProfile, instagram: e.target.value})}
                 placeholder="@username"
                 className="placeholder:text-gray-400"
               />
             </div>
             
             <div>
-              <label className="block text-sm font-medium mb-2">Twitter</label>
+              <label className="block text-sm font-medium mb-2">X (旧Twitter)</label>
               <Input
-                value={profile.twitter}
-                onChange={(e) => setProfile({...profile, twitter: e.target.value})}
+                value={localProfile.twitter}
+                onChange={(e) => setLocalProfile({...localProfile, twitter: e.target.value})}
                 placeholder="@username"
                 className="placeholder:text-gray-400"
               />
@@ -353,7 +331,7 @@ export default function StoreProfilePage() {
               description="営業許可証のコピーをアップロードしてください"
               required={true}
               onUpload={handleDocumentUpload('businessLicense')}
-              uploadedFile={profile.documents.businessLicense}
+              uploadedFile={localProfile.documents.businessLicense}
               isUploading={isSaving}
             />
             
@@ -362,7 +340,7 @@ export default function StoreProfilePage() {
               description="最新の納税証明書をアップロードしてください"
               required={true}
               onUpload={handleDocumentUpload('taxCertificate')}
-              uploadedFile={profile.documents.taxCertificate}
+              uploadedFile={localProfile.documents.taxCertificate}
               isUploading={isSaving}
             />
             
@@ -371,7 +349,7 @@ export default function StoreProfilePage() {
               description="商品賠償責任保険などの加入証明書（任意）"
               required={false}
               onUpload={handleDocumentUpload('insuranceCertificate')}
-              uploadedFile={profile.documents.insuranceCertificate}
+              uploadedFile={localProfile.documents.insuranceCertificate}
               isUploading={isSaving}
             />
             
@@ -381,7 +359,7 @@ export default function StoreProfilePage() {
               required={false}
               acceptedTypes={['image/*']}
               onUpload={handleDocumentUpload('productPhotos')}
-              uploadedFile={profile.documents.productPhotos}
+              uploadedFile={localProfile.documents.productPhotos}
               isUploading={isSaving}
             />
           </div>
@@ -393,7 +371,7 @@ export default function StoreProfilePage() {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
-                <div className={`w-4 h-4 rounded-full ${profile.isVerified ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                <div className={`w-4 h-4 rounded-full ${profile?.is_verified ? 'bg-green-500' : 'bg-gray-300'}`}></div>
                 <span className="font-medium">認証ステータス</span>
               </div>
               <span className={`px-3 py-1 rounded-full text-sm font-medium ${getVerificationStatusText().bg} ${getVerificationStatusText().color}`}>
@@ -401,7 +379,7 @@ export default function StoreProfilePage() {
               </span>
             </div>
             
-            {profile.verificationStatus === 'not_submitted' && (
+            {profile?.verification_status === 'not_submitted' && (
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                 <p className="text-sm text-blue-800 mb-3">
                   認証を受けることで、より多くのイベントに参加できるようになります。
@@ -416,7 +394,7 @@ export default function StoreProfilePage() {
               </div>
             )}
             
-            {profile.verificationStatus === 'pending' && (
+            {profile?.verification_status === 'pending' && (
               <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
                 <p className="text-sm text-yellow-800">
                   認証申請を審査中です。結果は数営業日以内にお知らせします。
@@ -424,7 +402,7 @@ export default function StoreProfilePage() {
               </div>
             )}
             
-            {profile.verificationStatus === 'approved' && (
+            {profile?.verification_status === 'approved' && (
               <div className="bg-green-50 border border-green-200 rounded-lg p-4">
                 <p className="text-sm text-green-800">
                   認証が完了しました！すべてのイベントに参加できます。
@@ -432,7 +410,7 @@ export default function StoreProfilePage() {
               </div>
             )}
             
-            {profile.verificationStatus === 'rejected' && (
+            {profile?.verification_status === 'rejected' && (
               <div className="bg-red-50 border border-red-200 rounded-lg p-4">
                 <p className="text-sm text-red-800 mb-3">
                   認証が拒否されました。書類を確認して再度申請してください。
@@ -454,18 +432,14 @@ export default function StoreProfilePage() {
         <div className="flex space-x-4">
           <Button
             type="button"
-            onClick={() => router.back()}
             variant="secondary"
-            className="flex-1"
+            onClick={() => router.push('/store')}
+            disabled={isSaving}
           >
             キャンセル
           </Button>
-          <Button
-            type="submit"
-            disabled={isSaving}
-            className="flex-1"
-          >
-            {isSaving ? '保存中...' : '保存'}
+          <Button type="submit" className="flex-grow" disabled={isSaving}>
+            {isSaving ? '保存中...' : 'プロフィールを保存'}
           </Button>
         </div>
       </form>
