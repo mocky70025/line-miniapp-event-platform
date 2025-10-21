@@ -134,6 +134,7 @@ export default function CreateEventPage() {
                 value={form.title}
                 onChange={(e) => setForm({...form, title: e.target.value})}
                 placeholder="イベント名を入力してください"
+                className="placeholder:text-gray-400"
                 required
               />
             </div>
@@ -144,7 +145,7 @@ export default function CreateEventPage() {
                 value={form.description}
                 onChange={(e) => setForm({...form, description: e.target.value})}
                 placeholder="イベントの詳細説明を入力してください"
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent h-24 resize-none"
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent h-24 resize-none placeholder:text-gray-400"
                 required
               />
             </div>
@@ -211,6 +212,7 @@ export default function CreateEventPage() {
                 value={form.location}
                 onChange={(e) => setForm({...form, location: e.target.value})}
                 placeholder="会場名を入力してください"
+                className="placeholder:text-gray-400"
                 required
               />
             </div>
@@ -221,6 +223,7 @@ export default function CreateEventPage() {
                 value={form.address}
                 onChange={(e) => setForm({...form, address: e.target.value})}
                 placeholder="住所を入力してください"
+                className="placeholder:text-gray-400"
                 required
               />
             </div>
@@ -269,6 +272,7 @@ export default function CreateEventPage() {
                 value={form.contact}
                 onChange={(e) => setForm({...form, contact: e.target.value})}
                 placeholder="電話番号またはメールアドレス"
+                className="placeholder:text-gray-400"
               />
             </div>
             
@@ -296,6 +300,7 @@ export default function CreateEventPage() {
                 value={newRequirement}
                 onChange={(e) => setNewRequirement(e.target.value)}
                 placeholder="必要書類を入力してください"
+                className="placeholder:text-gray-400"
                 onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addRequirement())}
               />
               <Button

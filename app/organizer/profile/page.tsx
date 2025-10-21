@@ -25,8 +25,6 @@ interface OrganizerProfile {
   verificationStatus: 'pending' | 'approved' | 'rejected' | 'not_submitted';
   documents: {
     businessLicense?: File | null;
-    taxCertificate?: File | null;
-    insuranceCertificate?: File | null;
   };
 }
 
@@ -45,9 +43,7 @@ export default function OrganizerProfilePage() {
     isVerified: false,
     verificationStatus: 'not_submitted',
     documents: {
-      businessLicense: null,
-      taxCertificate: null,
-      insuranceCertificate: null
+      businessLicense: null
     }
   });
   const [isLoading, setIsLoading] = useState(true);
@@ -82,9 +78,7 @@ export default function OrganizerProfilePage() {
           isVerified: false,
           verificationStatus: 'not_submitted',
           documents: {
-            businessLicense: null,
-            taxCertificate: null,
-            insuranceCertificate: null
+            businessLicense: null
           }
         };
         
@@ -131,11 +125,11 @@ export default function OrganizerProfilePage() {
 
   const handleSubmitForVerification = async () => {
     // 必須書類のチェック
-    const requiredDocs = ['businessLicense', 'taxCertificate'];
+    const requiredDocs = ['businessLicense'];
     const missingDocs = requiredDocs.filter(doc => !profile.documents[doc as keyof OrganizerProfile['documents']]);
     
     if (missingDocs.length > 0) {
-      alert('必須書類が不足しています。営業許可証と納税証明書をアップロードしてください。');
+      alert('必須書類が不足しています。営業許可証をアップロードしてください。');
       return;
     }
 
@@ -198,6 +192,7 @@ export default function OrganizerProfilePage() {
                 value={profile.contactName}
                 onChange={(e) => setProfile(prev => ({ ...prev, contactName: e.target.value }))}
                 placeholder="担当者名"
+                className="placeholder:text-gray-400"
                 required
               />
             </div>
@@ -209,6 +204,7 @@ export default function OrganizerProfilePage() {
                 value={profile.phone}
                 onChange={(e) => setProfile(prev => ({ ...prev, phone: e.target.value }))}
                 placeholder="03-xxxx-xxxx"
+                className="placeholder:text-gray-400"
                 required
               />
             </div>
@@ -220,6 +216,7 @@ export default function OrganizerProfilePage() {
                 value={profile.email}
                 onChange={(e) => setProfile(prev => ({ ...prev, email: e.target.value }))}
                 placeholder="your@example.com"
+                className="placeholder:text-gray-400"
                 required
               />
             </div>
@@ -238,6 +235,7 @@ export default function OrganizerProfilePage() {
                 value={profile.organizerName}
                 onChange={(e) => setProfile(prev => ({ ...prev, organizerName: e.target.value }))}
                 placeholder="組織名または会社名"
+                className="placeholder:text-gray-400"
                 required
               />
             </div>
@@ -268,6 +266,7 @@ export default function OrganizerProfilePage() {
                 value={profile.address}
                 onChange={(e) => setProfile(prev => ({ ...prev, address: e.target.value }))}
                 placeholder="組織の住所"
+                className="placeholder:text-gray-400"
                 required
               />
             </div>
@@ -278,7 +277,7 @@ export default function OrganizerProfilePage() {
                 value={profile.description}
                 onChange={(e) => setProfile(prev => ({ ...prev, description: e.target.value }))}
                 rows={4}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm p-2"
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm p-2 placeholder:text-gray-400"
                 placeholder="組織の活動内容や特徴を記述してください。"
                 required
               ></textarea>
@@ -291,6 +290,7 @@ export default function OrganizerProfilePage() {
                 value={profile.website}
                 onChange={(e) => setProfile(prev => ({ ...prev, website: e.target.value }))}
                 placeholder="https://your-organization.com"
+                className="placeholder:text-gray-400"
               />
             </div>
             <div>
@@ -301,6 +301,7 @@ export default function OrganizerProfilePage() {
                 value={profile.instagram}
                 onChange={(e) => setProfile(prev => ({ ...prev, instagram: e.target.value }))}
                 placeholder="@your_instagram"
+                className="placeholder:text-gray-400"
               />
             </div>
             <div>
@@ -311,6 +312,7 @@ export default function OrganizerProfilePage() {
                 value={profile.twitter}
                 onChange={(e) => setProfile(prev => ({ ...prev, twitter: e.target.value }))}
                 placeholder="@your_twitter"
+                className="placeholder:text-gray-400"
               />
             </div>
           </div>
@@ -326,24 +328,6 @@ export default function OrganizerProfilePage() {
               required={true}
               onUpload={handleDocumentUpload('businessLicense')}
               uploadedFile={profile.documents.businessLicense}
-              isUploading={isSaving}
-            />
-            
-            <DocumentUpload
-              title="納税証明書"
-              description="最新の納税証明書をアップロードしてください"
-              required={true}
-              onUpload={handleDocumentUpload('taxCertificate')}
-              uploadedFile={profile.documents.taxCertificate}
-              isUploading={isSaving}
-            />
-            
-            <DocumentUpload
-              title="イベント保険証券"
-              description="イベント開催時の保険証券（任意）"
-              required={false}
-              onUpload={handleDocumentUpload('insuranceCertificate')}
-              uploadedFile={profile.documents.insuranceCertificate}
               isUploading={isSaving}
             />
           </div>

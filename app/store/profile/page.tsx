@@ -227,6 +227,7 @@ export default function StoreProfilePage() {
                 value={profile.storeName}
                 onChange={(e) => setProfile({...profile, storeName: e.target.value})}
                 placeholder="店舗名を入力してください"
+                className="placeholder:text-gray-400"
                 required
               />
             </div>
@@ -237,6 +238,7 @@ export default function StoreProfilePage() {
                 value={profile.contactName}
                 onChange={(e) => setProfile({...profile, contactName: e.target.value})}
                 placeholder="担当者名を入力してください"
+                className="placeholder:text-gray-400"
                 required
               />
             </div>
@@ -247,6 +249,7 @@ export default function StoreProfilePage() {
                 value={profile.phone}
                 onChange={(e) => setProfile({...profile, phone: e.target.value})}
                 placeholder="090-1234-5678"
+                className="placeholder:text-gray-400"
                 required
               />
             </div>
@@ -258,6 +261,7 @@ export default function StoreProfilePage() {
                 value={profile.email}
                 onChange={(e) => setProfile({...profile, email: e.target.value})}
                 placeholder="example@email.com"
+                className="placeholder:text-gray-400"
                 required
               />
             </div>
@@ -268,6 +272,7 @@ export default function StoreProfilePage() {
                 value={profile.address}
                 onChange={(e) => setProfile({...profile, address: e.target.value})}
                 placeholder="東京都渋谷区道玄坂1-2-3"
+                className="placeholder:text-gray-400"
                 required
               />
             </div>
@@ -296,7 +301,7 @@ export default function StoreProfilePage() {
                 value={profile.description}
                 onChange={(e) => setProfile({...profile, description: e.target.value})}
                 placeholder="店舗や商品について詳しく説明してください"
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent h-24 resize-none"
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent h-24 resize-none placeholder:text-gray-400"
                 required
               />
             </div>
@@ -312,6 +317,7 @@ export default function StoreProfilePage() {
                 value={profile.website}
                 onChange={(e) => setProfile({...profile, website: e.target.value})}
                 placeholder="https://example.com"
+                className="placeholder:text-gray-400"
                 type="url"
               />
             </div>
@@ -322,6 +328,7 @@ export default function StoreProfilePage() {
                 value={profile.instagram}
                 onChange={(e) => setProfile({...profile, instagram: e.target.value})}
                 placeholder="@username"
+                className="placeholder:text-gray-400"
               />
             </div>
             
@@ -331,6 +338,7 @@ export default function StoreProfilePage() {
                 value={profile.twitter}
                 onChange={(e) => setProfile({...profile, twitter: e.target.value})}
                 placeholder="@username"
+                className="placeholder:text-gray-400"
               />
             </div>
           </div>
