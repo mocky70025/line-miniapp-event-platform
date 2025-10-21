@@ -1,3 +1,5 @@
+import { User, StoreProfile, OrganizerProfile, Event, EventApplication, StoreDocument } from './supabase';
+
 // API呼び出しのヘルパー関数
 export class ApiService {
   private baseUrl: string;

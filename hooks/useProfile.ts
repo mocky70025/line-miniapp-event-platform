@@ -1,44 +1,7 @@
 import { useState, useEffect } from 'react';
 import { apiService } from '@/lib/api';
 import { liffManager } from '@/lib/liff';
-
-export interface StoreProfile {
-  id: string;
-  user_id: string;
-  store_name: string;
-  contact_name: string;
-  phone?: string;
-  email?: string;
-  address?: string;
-  business_type?: string;
-  description?: string;
-  website?: string;
-  instagram?: string;
-  twitter?: string;
-  is_verified: boolean;
-  verification_status: 'not_submitted' | 'pending' | 'approved' | 'rejected';
-  created_at: string;
-  updated_at: string;
-}
-
-export interface OrganizerProfile {
-  id: string;
-  user_id: string;
-  organizer_name: string;
-  contact_name: string;
-  phone?: string;
-  email?: string;
-  address?: string;
-  organization_type?: string;
-  description?: string;
-  website?: string;
-  instagram?: string;
-  twitter?: string;
-  is_verified: boolean;
-  verification_status: 'not_submitted' | 'pending' | 'approved' | 'rejected';
-  created_at: string;
-  updated_at: string;
-}
+import { StoreProfile, OrganizerProfile } from '@/lib/supabase';
 
 export function useStoreProfile() {
   const [profile, setProfile] = useState<StoreProfile | null>(null);
@@ -109,6 +72,27 @@ export function useStoreProfile() {
     }
   };
 
+  const submitForVerification = async (documents?: Record<string, File | null>) => {
+    try {
+      setError(null);
+      
+      const liffUser = await liffManager.getUserProfile();
+      const user: any = await apiService.getUserByLineId(liffUser.userId);
+
+      // 認証ステータスを更新
+      const updatedProfile = await apiService.updateStoreProfile(profile?.id || '', {
+        verification_status: 'pending'
+      }) as StoreProfile;
+
+      setProfile(updatedProfile);
+      return updatedProfile;
+    } catch (err) {
+      console.error('Error submitting for verification:', err);
+      setError(err instanceof Error ? err.message : 'Unknown error');
+      throw err;
+    }
+  };
+
   useEffect(() => {
     loadProfile();
   }, []);
@@ -118,6 +102,7 @@ export function useStoreProfile() {
     loading,
     error,
     saveProfile,
+    submitForVerification,
     reload: loadProfile,
   };
 }
@@ -191,6 +176,27 @@ export function useOrganizerProfile() {
     }
   };
 
+  const submitForVerification = async () => {
+    try {
+      setError(null);
+      
+      const liffUser = await liffManager.getUserProfile();
+      const user: any = await apiService.getUserByLineId(liffUser.userId);
+
+      // 認証ステータスを更新
+      const updatedProfile = await apiService.updateOrganizerProfile(profile?.id || '', {
+        verification_status: 'pending'
+      }) as OrganizerProfile;
+
+      setProfile(updatedProfile);
+      return updatedProfile;
+    } catch (err) {
+      console.error('Error submitting for verification:', err);
+      setError(err instanceof Error ? err.message : 'Unknown error');
+      throw err;
+    }
+  };
+
   useEffect(() => {
     loadProfile();
   }, []);
@@ -200,6 +206,7 @@ export function useOrganizerProfile() {
     loading,
     error,
     saveProfile,
+    submitForVerification,
     reload: loadProfile,
   };
 }

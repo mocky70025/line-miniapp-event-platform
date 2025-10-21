@@ -1,42 +1,6 @@
 import { useState, useEffect } from 'react';
 import { apiService } from '@/lib/api';
-
-export interface Event {
-  id: string;
-  organizer_profile_id: string;
-  title: string;
-  description?: string;
-  date: string;
-  start_time?: string;
-  end_time?: string;
-  location?: string;
-  address?: string;
-  max_stores?: number;
-  fee: number;
-  category?: string;
-  requirements?: string[];
-  contact?: string;
-  is_public: boolean;
-  application_deadline?: string;
-  status: 'draft' | 'published' | 'closed' | 'completed';
-  created_at: string;
-  updated_at: string;
-}
-
-export interface EventApplication {
-  id: string;
-  event_id: string;
-  store_profile_id: string;
-  store_name: string;
-  contact_name: string;
-  phone?: string;
-  email?: string;
-  product_description?: string;
-  status: 'pending' | 'approved' | 'rejected' | 'cancelled';
-  applied_at: string;
-  created_at: string;
-  updated_at: string;
-}
+import { Event, EventApplication } from '@/lib/supabase';
 
 export function usePublishedEvents() {
   const [events, setEvents] = useState<Event[]>([]);
@@ -266,5 +230,32 @@ export function useUserEventApplications(storeProfileId: string) {
     error,
     createApplication,
     reload: loadApplications,
+  };
+}
+
+// 汎用的なイベント管理フック
+export function useEvents() {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const createEvent = async (eventData: Partial<Event>) => {
+    try {
+      setLoading(true);
+      setError(null);
+      const newEvent = await apiService.createEvent(eventData) as Event;
+      return newEvent;
+    } catch (err) {
+      console.error('Error creating event:', err);
+      setError(err instanceof Error ? err.message : 'Unknown error');
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return {
+    loading,
+    error,
+    createEvent,
   };
 }
