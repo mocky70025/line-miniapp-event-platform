@@ -7,7 +7,6 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
-import DocumentUpload from '@/components/DocumentUpload';
 
 interface OrganizerProfile {
   id?: string;
@@ -23,9 +22,7 @@ interface OrganizerProfile {
   twitter?: string;
   isVerified: boolean;
   verificationStatus: 'pending' | 'approved' | 'rejected' | 'not_submitted';
-  documents: {
-    businessLicense?: File | null;
-  };
+  documents: {};
 }
 
 export default function OrganizerProfilePage() {
@@ -42,9 +39,7 @@ export default function OrganizerProfilePage() {
     twitter: '',
     isVerified: false,
     verificationStatus: 'not_submitted',
-    documents: {
-      businessLicense: null
-    }
+    documents: {}
   });
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -77,9 +72,7 @@ export default function OrganizerProfilePage() {
           twitter: '@organizer_sample',
           isVerified: false,
           verificationStatus: 'not_submitted',
-          documents: {
-            businessLicense: null
-          }
+          documents: {}
         };
         
         setProfile(dummyProfile);
@@ -111,28 +104,8 @@ export default function OrganizerProfilePage() {
     }
   };
 
-  const handleDocumentUpload = (documentType: keyof OrganizerProfile['documents']) => {
-    return (file: File | null) => {
-      setProfile(prev => ({
-        ...prev,
-        documents: {
-          ...prev.documents,
-          [documentType]: file
-        }
-      }));
-    };
-  };
 
   const handleSubmitForVerification = async () => {
-    // 必須書類のチェック
-    const requiredDocs = ['businessLicense'];
-    const missingDocs = requiredDocs.filter(doc => !profile.documents[doc as keyof OrganizerProfile['documents']]);
-    
-    if (missingDocs.length > 0) {
-      alert('必須書類が不足しています。営業許可証をアップロードしてください。');
-      return;
-    }
-
     try {
       setIsSaving(true);
       // 認証申請のAPI呼び出し
@@ -318,20 +291,6 @@ export default function OrganizerProfilePage() {
           </div>
         </Card>
 
-        {/* 書類アップロード */}
-        <Card className="p-6">
-          <h2 className="text-lg font-bold mb-4">必要書類</h2>
-          <div className="space-y-4">
-            <DocumentUpload
-              title="営業許可証"
-              description="営業許可証または事業許可証のコピーをアップロードしてください"
-              required={true}
-              onUpload={handleDocumentUpload('businessLicense')}
-              uploadedFile={profile.documents.businessLicense}
-              isUploading={isSaving}
-            />
-          </div>
-        </Card>
 
         {/* 認証状況 */}
         <Card className="p-6">
