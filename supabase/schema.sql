@@ -63,6 +63,19 @@ CREATE TABLE store_documents (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- 申込書類管理テーブル
+CREATE TABLE application_documents (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  application_id UUID REFERENCES event_applications(id) ON DELETE CASCADE,
+  document_type VARCHAR(50) NOT NULL, -- 'business_license', 'product_photos', 'other'
+  file_name VARCHAR(255) NOT NULL,
+  file_path VARCHAR(500) NOT NULL,
+  file_size INTEGER,
+  mime_type VARCHAR(100),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 -- イベントテーブル
 CREATE TABLE events (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -131,6 +144,7 @@ CREATE INDEX idx_users_user_type ON users(user_type);
 CREATE INDEX idx_store_profiles_user_id ON store_profiles(user_id);
 CREATE INDEX idx_organizer_profiles_user_id ON organizer_profiles(user_id);
 CREATE INDEX idx_store_documents_profile_id ON store_documents(store_profile_id);
+CREATE INDEX idx_application_documents_application_id ON application_documents(application_id);
 CREATE INDEX idx_events_organizer ON events(organizer_profile_id);
 CREATE INDEX idx_events_status ON events(status);
 CREATE INDEX idx_events_date ON events(date);
@@ -144,6 +158,7 @@ ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE store_profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE organizer_profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE store_documents ENABLE ROW LEVEL SECURITY;
+ALTER TABLE application_documents ENABLE ROW LEVEL SECURITY;
 ALTER TABLE events ENABLE ROW LEVEL SECURITY;
 ALTER TABLE event_applications ENABLE ROW LEVEL SECURITY;
 ALTER TABLE application_documents ENABLE ROW LEVEL SECURITY;
@@ -177,6 +192,54 @@ CREATE POLICY "Organizer profiles can view own data" ON organizer_profiles
 CREATE POLICY "Organizer profiles can update own data" ON organizer_profiles
   FOR ALL USING (
     user_id IN (SELECT id FROM users WHERE line_user_id = auth.uid()::text)
+  );
+
+-- 店舗書類
+CREATE POLICY "Store documents can view own data" ON store_documents
+  FOR SELECT USING (
+    store_profile_id IN (
+      SELECT id FROM store_profiles 
+      WHERE user_id IN (
+        SELECT id FROM users WHERE line_user_id = auth.uid()::text
+      )
+    )
+  );
+
+CREATE POLICY "Store documents can manage own data" ON store_documents
+  FOR ALL USING (
+    store_profile_id IN (
+      SELECT id FROM store_profiles 
+      WHERE user_id IN (
+        SELECT id FROM users WHERE line_user_id = auth.uid()::text
+      )
+    )
+  );
+
+-- 申込書類
+CREATE POLICY "Application documents can view own data" ON application_documents
+  FOR SELECT USING (
+    application_id IN (
+      SELECT id FROM event_applications 
+      WHERE store_profile_id IN (
+        SELECT id FROM store_profiles 
+        WHERE user_id IN (
+          SELECT id FROM users WHERE line_user_id = auth.uid()::text
+        )
+      )
+    )
+  );
+
+CREATE POLICY "Application documents can manage own data" ON application_documents
+  FOR ALL USING (
+    application_id IN (
+      SELECT id FROM event_applications 
+      WHERE store_profile_id IN (
+        SELECT id FROM store_profiles 
+        WHERE user_id IN (
+          SELECT id FROM users WHERE line_user_id = auth.uid()::text
+        )
+      )
+    )
   );
 
 -- イベントは公開されているものは誰でも閲覧可能

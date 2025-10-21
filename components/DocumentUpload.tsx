@@ -3,6 +3,7 @@
 import { useState, useRef } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
+import { uploadService } from '@/lib/upload';
 
 interface DocumentUploadProps {
   title: string;
@@ -10,9 +11,12 @@ interface DocumentUploadProps {
   required: boolean;
   acceptedTypes?: string[];
   maxSize?: number; // MB
-  onUpload: (file: File) => void;
+  onUpload: (file: File | null) => void;
   uploadedFile?: File | null;
   isUploading?: boolean;
+  documentType?: string;
+  storeProfileId?: string;
+  applicationId?: string;
 }
 
 export default function DocumentUpload({
@@ -20,13 +24,17 @@ export default function DocumentUpload({
   description,
   required,
   acceptedTypes = ['image/*', 'application/pdf'],
-  maxSize = 5,
+  maxSize = 10,
   onUpload,
   uploadedFile,
-  isUploading = false
+  isUploading = false,
+  documentType,
+  storeProfileId,
+  applicationId
 }: DocumentUploadProps) {
   const [dragActive, setDragActive] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleDrag = (e: React.DragEvent) => {
@@ -59,27 +67,45 @@ export default function DocumentUpload({
     }
   };
 
-  const handleFile = (file: File) => {
+  const handleFile = async (file: File) => {
     // ファイルサイズチェック
-    if (file.size > maxSize * 1024 * 1024) {
+    if (!uploadService.validateFileSize(file, maxSize)) {
       setError(`ファイルサイズが${maxSize}MBを超えています`);
       return;
     }
 
     // ファイルタイプチェック
-    const isValidType = acceptedTypes.some(type => {
-      if (type.endsWith('/*')) {
-        return file.type.startsWith(type.slice(0, -1));
-      }
-      return file.type === type;
-    });
-
-    if (!isValidType) {
+    if (!uploadService.validateFileType(file, acceptedTypes)) {
       setError('対応していないファイル形式です');
       return;
     }
 
+    // ファイルをローカル状態に設定
     onUpload(file);
+
+    // 実際のアップロード処理（オプション）
+    if (documentType && (storeProfileId || applicationId)) {
+      setUploading(true);
+      try {
+        const result = await uploadService.uploadFile(
+          file, 
+          documentType, 
+          storeProfileId, 
+          applicationId
+        );
+        
+        if (!result.success) {
+          setError(result.error || 'アップロードに失敗しました');
+          onUpload(null);
+        }
+      } catch (error) {
+        console.error('Upload error:', error);
+        setError('アップロード中にエラーが発生しました');
+        onUpload(null);
+      } finally {
+        setUploading(false);
+      }
+    }
   };
 
   const openFileDialog = () => {
@@ -90,8 +116,11 @@ export default function DocumentUpload({
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
-    onUpload(null as any);
+    onUpload(null);
+    setError(null);
   };
+
+  const isProcessing = uploading || isUploading;
 
   return (
     <Card className="p-4">
@@ -109,22 +138,31 @@ export default function DocumentUpload({
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
                 <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                  <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
+                  {isProcessing ? (
+                    <div className="w-4 h-4 border-2 border-green-600 border-t-transparent rounded-full animate-spin"></div>
+                  ) : (
+                    <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  )}
                 </div>
                 <div>
                   <p className="font-medium text-green-800">{uploadedFile.name}</p>
                   <p className="text-sm text-green-600">
-                    {(uploadedFile.size / 1024 / 1024).toFixed(2)} MB
+                    {uploadService.formatFileSize(uploadedFile.size)}
                   </p>
+                  {isProcessing && (
+                    <p className="text-xs text-green-600">
+                      {uploading ? 'アップロード中...' : '処理中...'}
+                    </p>
+                  )}
                 </div>
               </div>
               <Button
                 onClick={removeFile}
                 variant="secondary"
                 size="sm"
-                disabled={isUploading}
+                disabled={isProcessing}
               >
                 削除
               </Button>
@@ -136,7 +174,7 @@ export default function DocumentUpload({
               dragActive
                 ? 'border-primary-400 bg-primary-50'
                 : 'border-gray-300 hover:border-gray-400'
-            }`}
+            } ${isProcessing ? 'opacity-50 pointer-events-none' : ''}`}
             onDragEnter={handleDrag}
             onDragLeave={handleDrag}
             onDragOver={handleDrag}
@@ -153,7 +191,7 @@ export default function DocumentUpload({
                   onClick={openFileDialog}
                   variant="secondary"
                   size="sm"
-                  disabled={isUploading}
+                  disabled={isProcessing}
                 >
                   ファイルを選択
                 </Button>
@@ -177,6 +215,7 @@ export default function DocumentUpload({
           className="hidden"
           accept={acceptedTypes.join(',')}
           onChange={handleFileInput}
+          disabled={isProcessing}
         />
       </div>
     </Card>
