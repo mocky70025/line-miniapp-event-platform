@@ -27,7 +27,6 @@ interface OrganizerProfile {
     businessLicense?: File | null;
     taxCertificate?: File | null;
     insuranceCertificate?: File | null;
-    eventHistory?: File | null;
   };
 }
 
@@ -48,8 +47,7 @@ export default function OrganizerProfilePage() {
     documents: {
       businessLicense: null,
       taxCertificate: null,
-      insuranceCertificate: null,
-      eventHistory: null
+      insuranceCertificate: null
     }
   });
   const [isLoading, setIsLoading] = useState(true);
@@ -86,8 +84,7 @@ export default function OrganizerProfilePage() {
           documents: {
             businessLicense: null,
             taxCertificate: null,
-            insuranceCertificate: null,
-            eventHistory: null
+            insuranceCertificate: null
           }
         };
         
@@ -347,15 +344,6 @@ export default function OrganizerProfilePage() {
               required={false}
               onUpload={handleDocumentUpload('insuranceCertificate')}
               uploadedFile={profile.documents.insuranceCertificate}
-              isUploading={isSaving}
-            />
-            
-            <DocumentUpload
-              title="過去のイベント実績"
-              description="過去に開催したイベントの実績資料（任意）"
-              required={false}
-              onUpload={handleDocumentUpload('eventHistory')}
-              uploadedFile={profile.documents.eventHistory}
               isUploading={isSaving}
             />
           </div>
