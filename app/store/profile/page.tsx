@@ -65,19 +65,19 @@ export default function StoreProfilePage() {
           const liffUser = await liffManager.getUserProfile();
           setUser(liffUser);
           
-          // ダミーのプロフィールデータ（実際はAPIから取得）
-          const dummyProfile: StoreProfile = {
-            id: '1',
-            storeName: 'サンプル店舗',
+          // 実際のプロフィールデータを取得（現在は空の状態）
+          const currentProfile: StoreProfile = {
+            id: undefined,
+            storeName: '',
             contactName: liffUser.displayName,
-            phone: '090-1234-5678',
-            email: 'sample@example.com',
-            address: '東京都渋谷区道玄坂1-2-3',
-            businessType: 'handmade',
-            description: '手作りのアクセサリーと雑貨を販売しています。',
-            website: 'https://example.com',
-            instagram: '@sample_store',
-            twitter: '@sample_store',
+            phone: '',
+            email: '',
+            address: '',
+            businessType: '',
+            description: '',
+            website: '',
+            instagram: '',
+            twitter: '',
             isVerified: false,
             verificationStatus: 'not_submitted',
             documents: {
@@ -88,7 +88,7 @@ export default function StoreProfilePage() {
             }
           };
           
-          setProfile(dummyProfile);
+          setProfile(currentProfile);
         }
       } catch (error) {
         console.error('プロフィール読み込みエラー:', error);

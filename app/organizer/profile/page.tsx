@@ -57,25 +57,25 @@ export default function OrganizerProfilePage() {
         const liffUser = await liffManager.getUserProfile();
         setUser(liffUser);
         
-        // ダミーのプロフィールデータ（実際はAPIから取得）
-        const dummyProfile: OrganizerProfile = {
-          id: '1',
-          organizerName: 'イベント企画会社 サンプル',
+        // 実際のプロフィールデータを取得（現在は空の状態）
+        const currentProfile: OrganizerProfile = {
+          id: undefined,
+          organizerName: '',
           contactName: liffUser.displayName,
-          phone: '03-1234-5678',
-          email: 'organizer@example.com',
-          address: '東京都渋谷区道玄坂1-2-3',
-          organizationType: 'company',
-          description: '地域密着型のイベント企画・運営を行っています。',
-          website: 'https://organizer-example.com',
-          instagram: '@organizer_sample',
-          twitter: '@organizer_sample',
+          phone: '',
+          email: '',
+          address: '',
+          organizationType: '',
+          description: '',
+          website: '',
+          instagram: '',
+          twitter: '',
           isVerified: false,
           verificationStatus: 'not_submitted',
           documents: {}
         };
         
-        setProfile(dummyProfile);
+        setProfile(currentProfile);
       } catch (error) {
         console.error('プロフィール読み込みエラー:', error);
       } finally {
