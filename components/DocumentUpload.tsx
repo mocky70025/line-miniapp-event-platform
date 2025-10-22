@@ -82,30 +82,6 @@ export default function DocumentUpload({
 
     // ファイルをローカル状態に設定
     onUpload(file);
-
-    // 実際のアップロード処理（オプション）
-    if (documentType && (storeProfileId || applicationId)) {
-      setUploading(true);
-      try {
-        const result = await uploadService.uploadFile(
-          file, 
-          documentType, 
-          storeProfileId, 
-          applicationId
-        );
-        
-        if (!result.success) {
-          setError(result.error || 'アップロードに失敗しました');
-          onUpload(null);
-        }
-      } catch (error) {
-        console.error('Upload error:', error);
-        setError('アップロード中にエラーが発生しました');
-        onUpload(null);
-      } finally {
-        setUploading(false);
-      }
-    }
   };
 
   const openFileDialog = () => {

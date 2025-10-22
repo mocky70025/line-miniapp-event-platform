@@ -12,7 +12,7 @@ export class UploadService {
 
   constructor() {
     this.baseUrl = process.env.NODE_ENV === 'production' 
-      ? 'https://your-vercel-app.vercel.app' 
+      ? 'https://line-miniapp-event-platform-5na3.vercel.app' 
       : 'http://localhost:3000';
   }
 
