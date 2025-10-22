@@ -450,8 +450,6 @@ export default function StoreProfilePage() {
               onUpload={handleDocumentUpload('businessLicense')}
               uploadedFile={localProfile.documents.businessLicense}
               isUploading={isSaving}
-              documentType="business_license"
-              storeProfileId={profile?.id}
             />
             
             <DocumentUpload
@@ -461,8 +459,6 @@ export default function StoreProfilePage() {
               onUpload={handleDocumentUpload('taxCertificate')}
               uploadedFile={localProfile.documents.taxCertificate}
               isUploading={isSaving}
-              documentType="tax_certificate"
-              storeProfileId={profile?.id}
             />
             
             <DocumentUpload
@@ -472,8 +468,6 @@ export default function StoreProfilePage() {
               onUpload={handleDocumentUpload('insuranceCertificate')}
               uploadedFile={localProfile.documents.insuranceCertificate}
               isUploading={isSaving}
-              documentType="insurance_certificate"
-              storeProfileId={profile?.id}
             />
             
             <DocumentUpload
@@ -484,8 +478,6 @@ export default function StoreProfilePage() {
               onUpload={handleDocumentUpload('productPhotos')}
               uploadedFile={localProfile.documents.productPhotos}
               isUploading={isSaving}
-              documentType="product_photos"
-              storeProfileId={profile?.id}
             />
           </div>
         </Card>

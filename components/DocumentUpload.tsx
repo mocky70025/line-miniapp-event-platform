@@ -3,7 +3,6 @@
 import { useState, useRef } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
-import { uploadService } from '@/lib/upload';
 
 interface DocumentUploadProps {
   title: string;
@@ -14,9 +13,6 @@ interface DocumentUploadProps {
   onUpload: (file: File | null) => void;
   uploadedFile?: File | null;
   isUploading?: boolean;
-  documentType?: string;
-  storeProfileId?: string;
-  applicationId?: string;
 }
 
 export default function DocumentUpload({
@@ -27,10 +23,7 @@ export default function DocumentUpload({
   maxSize = 10,
   onUpload,
   uploadedFile,
-  isUploading = false,
-  documentType,
-  storeProfileId,
-  applicationId
+  isUploading = false
 }: DocumentUploadProps) {
   const [dragActive, setDragActive] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -67,15 +60,24 @@ export default function DocumentUpload({
     }
   };
 
-  const handleFile = async (file: File) => {
+  const handleFile = (file: File) => {
+    setError(null);
+
     // ファイルサイズチェック
-    if (!uploadService.validateFileSize(file, maxSize)) {
+    if (file.size > maxSize * 1024 * 1024) {
       setError(`ファイルサイズが${maxSize}MBを超えています`);
       return;
     }
 
-    // ファイルタイプチェック
-    if (!uploadService.validateFileType(file, acceptedTypes)) {
+    // ファイル形式チェック
+    const isValidType = acceptedTypes.some(type => {
+      if (type.endsWith('/*')) {
+        return file.type.startsWith(type.slice(0, -1));
+      }
+      return file.type === type;
+    });
+
+    if (!isValidType) {
       setError('対応していないファイル形式です');
       return;
     }
