@@ -14,6 +14,7 @@ interface OrganizerProfile {
   contactName: string;
   phone: string;
   email: string;
+  postalCode?: string;
   address: string;
   organizationType: string;
   description: string;
@@ -31,6 +32,7 @@ export default function OrganizerProfilePage() {
     contactName: '',
     phone: '',
     email: '',
+    postalCode: '',
     address: '',
     organizationType: '',
     description: '',
@@ -104,6 +106,28 @@ export default function OrganizerProfilePage() {
     }
   };
 
+
+  // 郵便番号から住所を取得する関数
+  const handlePostalCodeChange = async () => {
+    const postalCode = profile.postalCode?.replace(/[^\d]/g, '');
+    if (postalCode && postalCode.length === 7) {
+      try {
+        const response = await fetch(`https://zipcloud.ibsnet.co.jp/api/search?zipcode=${postalCode}`);
+        const data = await response.json();
+        
+        if (data.status === 200 && data.results && data.results.length > 0) {
+          const result = data.results[0];
+          const address = `${result.address1}${result.address2}${result.address3}`;
+          setProfile(prev => ({
+            ...prev,
+            address: address
+          }));
+        }
+      } catch (error) {
+        console.error('郵便番号検索エラー:', error);
+      }
+    }
+  };
 
   const handleSubmitForVerification = async () => {
     try {
@@ -231,6 +255,20 @@ export default function OrganizerProfilePage() {
                 <option value="other">その他</option>
               </select>
             </div>
+            <div>
+              <label htmlFor="postalCode" className="block text-sm font-medium text-gray-700 mb-1">郵便番号</label>
+              <Input
+                id="postalCode"
+                type="text"
+                value={profile.postalCode || ''}
+                onChange={(e) => setProfile(prev => ({ ...prev, postalCode: e.target.value }))}
+                placeholder="123-4567"
+                className="placeholder:text-gray-400"
+                maxLength={8}
+                onBlur={handlePostalCodeChange}
+              />
+            </div>
+            
             <div>
               <label htmlFor="address" className="block text-sm font-medium text-gray-700 mb-1">住所</label>
               <Input

@@ -26,6 +26,7 @@ export default function StoreProfilePage() {
     contactName: '',
     phone: '',
     email: '',
+    postalCode: '',
     address: '',
     businessType: '',
     description: '',
@@ -116,6 +117,7 @@ export default function StoreProfilePage() {
         contactName: profile.contact_name || '',
         phone: profile.phone || '',
         email: profile.email || '',
+        postalCode: profile.postal_code || '',
         address: profile.address || '',
         businessType: profile.business_type || '',
         description: profile.description || '',
@@ -154,6 +156,28 @@ export default function StoreProfilePage() {
     }
   };
 
+  // 郵便番号から住所を取得する関数
+  const handlePostalCodeChange = async () => {
+    const postalCode = localProfile.postalCode?.replace(/[^\d]/g, '');
+    if (postalCode && postalCode.length === 7) {
+      try {
+        const response = await fetch(`https://zipcloud.ibsnet.co.jp/api/search?zipcode=${postalCode}`);
+        const data = await response.json();
+        
+        if (data.status === 200 && data.results && data.results.length > 0) {
+          const result = data.results[0];
+          const address = `${result.address1}${result.address2}${result.address3}`;
+          setLocalProfile(prev => ({
+            ...prev,
+            address: address
+          }));
+        }
+      } catch (error) {
+        console.error('郵便番号検索エラー:', error);
+      }
+    }
+  };
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
@@ -164,6 +188,7 @@ export default function StoreProfilePage() {
         contact_name: localProfile.contactName,
         phone: localProfile.phone,
         email: localProfile.email,
+        postal_code: localProfile.postalCode,
         address: localProfile.address,
         business_type: localProfile.businessType,
         description: localProfile.description,
@@ -327,6 +352,18 @@ export default function StoreProfilePage() {
                 placeholder="example@email.com"
                 className="placeholder:text-gray-400"
                 required
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium mb-2">郵便番号</label>
+              <Input
+                value={localProfile.postalCode || ''}
+                onChange={(e) => setLocalProfile({...localProfile, postalCode: e.target.value})}
+                placeholder="123-4567"
+                className="placeholder:text-gray-400"
+                maxLength={8}
+                onBlur={handlePostalCodeChange}
               />
             </div>
             
