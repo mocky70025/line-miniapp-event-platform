@@ -137,6 +137,7 @@ export default function DocumentUpload({
                 </div>
               </div>
               <Button
+                type="button"
                 onClick={removeFile}
                 variant="secondary"
                 size="sm"
@@ -166,6 +167,7 @@ export default function DocumentUpload({
                 <p className="font-medium">ファイルをドラッグ&ドロップ</p>
                 <p>または</p>
                 <Button
+                  type="button"
                   onClick={openFileDialog}
                   variant="secondary"
                   size="sm"
