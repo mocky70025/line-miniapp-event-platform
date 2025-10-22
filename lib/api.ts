@@ -158,6 +158,24 @@ export class ApiService {
       body: JSON.stringify(documentData),
     });
   }
+
+  // Generic File Upload API
+  async uploadFile(file: File, path: string): Promise<{ filePath: string; publicUrl: string }> {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('path', path);
+
+    const response = await fetch(`${this.baseUrl}/api/upload`, {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ error: 'Unknown file upload error' }));
+      throw new Error(errorData.error || `HTTP ${response.status}`);
+    }
+    return response.json();
+  }
 }
 
 export const apiService = new ApiService();
