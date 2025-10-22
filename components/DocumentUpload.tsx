@@ -86,11 +86,15 @@ export default function DocumentUpload({
     onUpload(file);
   };
 
-  const openFileDialog = () => {
+  const openFileDialog = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
     fileInputRef.current?.click();
   };
 
-  const removeFile = () => {
+  const removeFile = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -142,6 +146,7 @@ export default function DocumentUpload({
                 variant="secondary"
                 size="sm"
                 disabled={isProcessing}
+                onMouseDown={(e) => e.preventDefault()}
               >
                 削除
               </Button>
@@ -172,6 +177,7 @@ export default function DocumentUpload({
                   variant="secondary"
                   size="sm"
                   disabled={isProcessing}
+                  onMouseDown={(e) => e.preventDefault()}
                 >
                   ファイルを選択
                 </Button>

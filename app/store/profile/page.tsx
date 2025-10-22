@@ -305,7 +305,10 @@ export default function StoreProfilePage() {
     <div className="min-h-screen bg-gray-100 p-4">
       <h1 className="text-2xl font-bold mb-6 text-center">プロフィール設定</h1>
 
-      <form onSubmit={handleSave} className="space-y-6">
+      <form onSubmit={(e) => {
+        e.preventDefault();
+        handleSave(e);
+      }} className="space-y-6">
         {/* 基本情報 */}
         <Card className="p-6">
           <h2 className="text-lg font-bold mb-4">基本情報</h2>
