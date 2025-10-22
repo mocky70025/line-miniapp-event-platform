@@ -147,14 +147,22 @@ export default function CreateEventPage() {
     setIsSubmitting(true);
 
     try {
+      console.log('イベント作成開始:', form);
+      
       // 必須項目のチェック
       if (!form.eventName || !form.startDate || !form.venueName || !form.address) {
+        console.error('必須項目が不足:', { eventName: form.eventName, startDate: form.startDate, venueName: form.venueName, address: form.address });
         alert('必須項目を入力してください。');
         return;
       }
 
+      console.log('LIFFユーザー取得中...');
       const liffUser = await liffManager.getUserProfile();
+      console.log('LIFFユーザー:', liffUser);
+      
+      console.log('ユーザー情報取得中...');
       const user: any = await apiService.getUserByLineId(liffUser.userId);
+      console.log('ユーザー情報:', user);
       
       // イベントデータをSupabaseに保存
       const eventData = {
@@ -210,13 +218,16 @@ export default function CreateEventPage() {
         additional_image_captions: form.additionalImageCaptions
       };
 
-      await apiService.createEvent(eventData);
+      console.log('イベントデータ送信中:', eventData);
+      const result = await apiService.createEvent(eventData);
+      console.log('イベント作成結果:', result);
       
       alert('イベントを作成しました！');
       router.push('/organizer/events/manage');
     } catch (error) {
       console.error('イベント作成エラー:', error);
-      alert('イベントの作成に失敗しました。もう一度お試しください。');
+      console.error('エラーの詳細:', error);
+      alert(`イベントの作成に失敗しました。エラー: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setIsSubmitting(false);
     }
