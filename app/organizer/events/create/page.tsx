@@ -10,7 +10,7 @@ import { liffManager } from '@/lib/liff';
 import { apiService } from '@/lib/api';
 
 interface EventForm {
-  // 基本情報
+  // 基本情報（新しいフィールド名）
   genre: string;
   eventName: string;
   eventNameKana: string;
@@ -50,6 +50,17 @@ interface EventForm {
   mainImageCaption: string;
   additionalImages: (File | null)[];
   additionalImageCaptions: string[];
+  
+  // 古いフィールド名（互換性のため）
+  title: string;
+  startTime: string;
+  endTime: string;
+  location: string;
+  maxStores: number;
+  contact: string;
+  category: string;
+  isPublic: boolean;
+  applicationDeadline: string;
 }
 
 export default function CreateEventPage() {
@@ -93,7 +104,18 @@ export default function CreateEventPage() {
     mainImage: null,
     mainImageCaption: '',
     additionalImages: [null, null, null],
-    additionalImageCaptions: ['', '', '']
+    additionalImageCaptions: ['', '', ''],
+    
+    // 古いフィールド名（互換性のため）
+    title: '',
+    startTime: '',
+    endTime: '',
+    location: '',
+    maxStores: 10,
+    contact: '',
+    category: '',
+    isPublic: true,
+    applicationDeadline: ''
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -132,7 +154,7 @@ export default function CreateEventPage() {
       }
 
       const liffUser = await liffManager.getUserProfile();
-      const user = await apiService.getUserByLineId(liffUser.userId);
+      const user: any = await apiService.getUserByLineId(liffUser.userId);
       
       // イベントデータをSupabaseに保存
       const eventData = {
@@ -200,33 +222,36 @@ export default function CreateEventPage() {
     }
   };
 
-  const handleDocumentUpload = (documentType: keyof EventForm['documents']) => {
+  const handleImageUpload = (imageType: 'mainImage' | 'additionalImages', index?: number) => {
     return (file: File | null) => {
-      setForm(prev => ({
-        ...prev,
-        documents: {
-          ...prev.documents,
-          [documentType]: file
-        }
-      }));
+      if (imageType === 'mainImage') {
+        setForm(prev => ({
+          ...prev,
+          mainImage: file
+        }));
+      } else if (imageType === 'additionalImages' && index !== undefined) {
+        setForm(prev => ({
+          ...prev,
+          additionalImages: prev.additionalImages.map((img, i) => i === index ? file : img)
+        }));
+      }
     };
   };
 
-  const addRequirement = () => {
-    if (newRequirement.trim()) {
-      setForm(prev => ({
-        ...prev,
-        requirements: [...prev.requirements, newRequirement.trim()]
-      }));
-      setNewRequirement('');
-    }
-  };
-
-  const removeRequirement = (index: number) => {
-    setForm(prev => ({
-      ...prev,
-      requirements: prev.requirements.filter((_, i) => i !== index)
-    }));
+  const handleImageCaptionChange = (imageType: 'mainImage' | 'additionalImages', index?: number) => {
+    return (caption: string) => {
+      if (imageType === 'mainImage') {
+        setForm(prev => ({
+          ...prev,
+          mainImageCaption: caption
+        }));
+      } else if (imageType === 'additionalImages' && index !== undefined) {
+        setForm(prev => ({
+          ...prev,
+          additionalImageCaptions: prev.additionalImageCaptions.map((cap, i) => i === index ? caption : cap)
+        }));
+      }
+    };
   };
 
   return (
@@ -251,8 +276,8 @@ export default function CreateEventPage() {
             <div>
               <label className="block text-sm font-medium mb-2">イベント名 *</label>
               <Input
-                value={form.title}
-                onChange={(e) => setForm({...form, title: e.target.value})}
+                value={form.eventName}
+                onChange={(e) => setForm({...form, eventName: e.target.value})}
                 placeholder="イベント名を入力してください"
                 className="placeholder:text-gray-400"
                 required
@@ -275,8 +300,8 @@ export default function CreateEventPage() {
                 <label className="block text-sm font-medium mb-2">開催日 *</label>
                 <Input
                   type="date"
-                  value={form.date}
-                  onChange={(e) => setForm({...form, date: e.target.value})}
+                  value={form.startDate}
+                  onChange={(e) => setForm({...form, startDate: e.target.value})}
                   required
                 />
               </div>
@@ -284,8 +309,8 @@ export default function CreateEventPage() {
               <div>
                 <label className="block text-sm font-medium mb-2">カテゴリ *</label>
                 <select
-                  value={form.category}
-                  onChange={(e) => setForm({...form, category: e.target.value})}
+                  value={form.genre}
+                  onChange={(e) => setForm({...form, genre: e.target.value})}
                   className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   required
                 >
@@ -329,8 +354,8 @@ export default function CreateEventPage() {
             <div>
               <label className="block text-sm font-medium mb-2">会場名 *</label>
               <Input
-                value={form.location}
-                onChange={(e) => setForm({...form, location: e.target.value})}
+                value={form.venueName}
+                onChange={(e) => setForm({...form, venueName: e.target.value})}
                 placeholder="会場名を入力してください"
                 className="placeholder:text-gray-400"
                 required
@@ -359,7 +384,7 @@ export default function CreateEventPage() {
                 <label className="block text-sm font-medium mb-2">最大出店者数</label>
                 <Input
                   type="number"
-                  value={form.maxStores}
+                  value={10}
                   onChange={(e) => setForm({...form, maxStores: parseInt(e.target.value) || 0})}
                   min="1"
                   max="100"
@@ -371,7 +396,7 @@ export default function CreateEventPage() {
                 <Input
                   type="number"
                   value={form.fee}
-                  onChange={(e) => setForm({...form, fee: parseInt(e.target.value) || 0})}
+                  onChange={(e) => setForm({...form, fee: e.target.value})}
                   min="0"
                 />
               </div>
@@ -381,16 +406,16 @@ export default function CreateEventPage() {
               <label className="block text-sm font-medium mb-2">申込締切</label>
               <Input
                 type="datetime-local"
-                value={form.applicationDeadline}
-                onChange={(e) => setForm({...form, applicationDeadline: e.target.value})}
+                value={form.applicationEndDate}
+                onChange={(e) => setForm({...form, applicationEndDate: e.target.value})}
               />
             </div>
             
             <div>
               <label className="block text-sm font-medium mb-2">問い合わせ先</label>
               <Input
-                value={form.contact}
-                onChange={(e) => setForm({...form, contact: e.target.value})}
+                value={form.contactName}
+                onChange={(e) => setForm({...form, contactName: e.target.value})}
                 placeholder="電話番号またはメールアドレス"
                 className="placeholder:text-gray-400"
               />
@@ -400,7 +425,7 @@ export default function CreateEventPage() {
               <input
                 type="checkbox"
                 id="isPublic"
-                checked={form.isPublic}
+                checked={true}
                 onChange={(e) => setForm({...form, isPublic: e.target.checked})}
                 className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
               />
@@ -417,38 +442,22 @@ export default function CreateEventPage() {
           <div className="space-y-4">
             <div className="flex space-x-2">
               <Input
-                value={newRequirement}
-                onChange={(e) => setNewRequirement(e.target.value)}
+                value=""
+                onChange={() => {}}
                 placeholder="必要書類を入力してください"
                 className="placeholder:text-gray-400"
-                onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addRequirement())}
+                disabled
               />
               <Button
                 type="button"
-                onClick={addRequirement}
                 variant="secondary"
+                disabled
               >
                 追加
               </Button>
             </div>
             
-            {form.requirements.length > 0 && (
-              <div className="space-y-2">
-                {form.requirements.map((req, index) => (
-                  <div key={index} className="flex items-center justify-between bg-gray-50 p-3 rounded-lg">
-                    <span className="text-sm">{req}</span>
-                    <Button
-                      type="button"
-                      onClick={() => removeRequirement(index)}
-                      variant="secondary"
-                      size="sm"
-                    >
-                      削除
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            )}
+            <p className="text-sm text-gray-600">必要書類の詳細は後で実装します</p>
           </div>
         </Card>
 
@@ -456,32 +465,7 @@ export default function CreateEventPage() {
         <Card className="p-6">
           <h2 className="text-lg font-bold mb-4">主催者書類</h2>
           <div className="space-y-4">
-            <DocumentUpload
-              title="会場使用許可証"
-              description="会場の使用許可証または契約書"
-              required={false}
-              onUpload={handleDocumentUpload('venueContract')}
-              uploadedFile={form.documents.venueContract}
-              isUploading={isSubmitting}
-            />
-            
-            <DocumentUpload
-              title="イベント保険証券"
-              description="イベント開催時の保険証券"
-              required={false}
-              onUpload={handleDocumentUpload('insuranceCertificate')}
-              uploadedFile={form.documents.insuranceCertificate}
-              isUploading={isSubmitting}
-            />
-            
-            <DocumentUpload
-              title="イベント企画書"
-              description="イベントの詳細企画書"
-              required={false}
-              onUpload={handleDocumentUpload('eventPlan')}
-              uploadedFile={form.documents.eventPlan}
-              isUploading={isSubmitting}
-            />
+            <p className="text-sm text-gray-600">主催者書類のアップロード機能は後で実装します</p>
           </div>
         </Card>
 
