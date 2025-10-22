@@ -208,6 +208,8 @@ export default function StoreProfilePage() {
 
   const handleDocumentUpload = (documentType: keyof typeof localProfile.documents) => {
     return async (file: File | null) => {
+      console.log('handleDocumentUpload called:', { documentType, file });
+      
       if (!file) {
         setLocalProfile(prev => ({
           ...prev,
@@ -221,9 +223,12 @@ export default function StoreProfilePage() {
 
       try {
         setIsSaving(true);
+        console.log('Starting file upload to Supabase Storage...');
         
         // Supabase Storageにアップロード
         const { filePath, publicUrl } = await (apiService as any).uploadFile(file, 'store_documents');
+        
+        console.log('Upload successful:', { filePath, publicUrl });
         
         // ローカル状態を更新
         setLocalProfile(prev => ({
@@ -235,9 +240,10 @@ export default function StoreProfilePage() {
         }));
         
         console.log('File uploaded successfully:', { filePath, publicUrl });
+        alert('ファイルが正常にアップロードされました！');
       } catch (error) {
         console.error('File upload error:', error);
-        alert('ファイルのアップロードに失敗しました。もう一度お試しください。');
+        alert(`ファイルのアップロードに失敗しました: ${error instanceof Error ? error.message : 'Unknown error'}`);
       } finally {
         setIsSaving(false);
       }

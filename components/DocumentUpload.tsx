@@ -40,27 +40,27 @@ export default function DocumentUpload({
     }
   };
 
-  const handleDrop = (e: React.DragEvent) => {
+  const handleDrop = async (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
     setDragActive(false);
     setError(null);
 
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      handleFile(e.dataTransfer.files[0]);
+      await handleFile(e.dataTransfer.files[0]);
     }
   };
 
-  const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileInput = async (e: React.ChangeEvent<HTMLInputElement>) => {
     e.preventDefault();
     setError(null);
     
     if (e.target.files && e.target.files[0]) {
-      handleFile(e.target.files[0]);
+      await handleFile(e.target.files[0]);
     }
   };
 
-  const handleFile = (file: File) => {
+  const handleFile = async (file: File) => {
     setError(null);
 
     // ファイルサイズチェック
@@ -82,8 +82,8 @@ export default function DocumentUpload({
       return;
     }
 
-    // ファイルをローカル状態に設定
-    onUpload(file);
+    // ファイルをローカル状態に設定（非同期）
+    await onUpload(file);
   };
 
   const openFileDialog = (e: React.MouseEvent) => {
