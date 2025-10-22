@@ -147,22 +147,17 @@ export default function CreateEventPage() {
     setIsSubmitting(true);
 
     try {
-      console.log('イベント作成開始:', form);
-      
       // 必須項目のチェック
       if (!form.eventName || !form.startDate || !form.venueName || !form.address) {
-        console.error('必須項目が不足:', { eventName: form.eventName, startDate: form.startDate, venueName: form.venueName, address: form.address });
-        alert('必須項目を入力してください。');
+        alert('必須項目を入力してください。\nイベント名、開催日、会場名、住所を入力してください。');
         return;
       }
 
-      console.log('LIFFユーザー取得中...');
+      alert('LIFFユーザー取得中...');
       const liffUser = await liffManager.getUserProfile();
-      console.log('LIFFユーザー:', liffUser);
       
-      console.log('ユーザー情報取得中...');
+      alert('ユーザー情報取得中...');
       const user: any = await apiService.getUserByLineId(liffUser.userId);
-      console.log('ユーザー情報:', user);
       
       // イベントデータをSupabaseに保存
       const eventData = {
@@ -218,16 +213,26 @@ export default function CreateEventPage() {
         additional_image_captions: form.additionalImageCaptions
       };
 
-      console.log('イベントデータ送信中:', eventData);
+      alert('イベントデータ送信中...');
       const result = await apiService.createEvent(eventData);
-      console.log('イベント作成結果:', result);
       
       alert('イベントを作成しました！');
       router.push('/organizer/events/manage');
     } catch (error) {
-      console.error('イベント作成エラー:', error);
-      console.error('エラーの詳細:', error);
-      alert(`イベントの作成に失敗しました。エラー: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      let errorMessage = 'Unknown error';
+      let errorDetails = '';
+      
+      if (error instanceof Error) {
+        errorMessage = error.message;
+        try {
+          const errorObj = JSON.parse(error.message);
+          errorDetails = `\n詳細: ${errorObj.details || ''}\n\n完全なエラー: ${errorObj.fullError || ''}`;
+        } catch {
+          errorDetails = `\n詳細: ${error.message}`;
+        }
+      }
+      
+      alert(`イベントの作成に失敗しました。\nエラー: ${errorMessage}${errorDetails}`);
     } finally {
       setIsSubmitting(false);
     }

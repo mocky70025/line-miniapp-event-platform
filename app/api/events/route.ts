@@ -149,14 +149,20 @@ export async function POST(request: NextRequest) {
     
     if (!event) {
       console.error('Failed to create event');
-      return NextResponse.json({ error: 'Failed to create event' }, { status: 500 });
+      return NextResponse.json({ error: 'Failed to create event in database' }, { status: 500 });
     }
 
     console.log('Event created successfully:', event);
     return NextResponse.json(event, { status: 201 });
   } catch (error) {
     console.error('Error creating event:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const errorDetails = JSON.stringify(error);
+    return NextResponse.json({ 
+      error: 'Internal server error', 
+      details: errorMessage,
+      fullError: errorDetails 
+    }, { status: 500 });
   }
 }
 
