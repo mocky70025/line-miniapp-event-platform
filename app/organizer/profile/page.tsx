@@ -32,44 +32,26 @@ export default function OrganizerProfilePage() {
   const router = useRouter();
 
   useEffect(() => {
-    const loadProfile = async () => {
+    const initLiff = async () => {
       try {
         const success = await liffManager.init('organizer');
-        if (!success || !liffManager.isLoggedIn()) {
-          await liffManager.login('organizer');
-          return;
+        if (success && liffManager.isLoggedIn()) {
+          const liffUser = await liffManager.getUserProfile();
+          setUser(liffUser);
+          await loadProfile();
+        } else {
+          setIsLoading(false);
         }
-        const liffUser = await liffManager.getUserProfile();
-        setUser(liffUser);
-        
-        // プロフィールデータをローカル状態に設定
-        setLocalProfile({
-          organizerName: '',
-          contactName: liffUser.displayName,
-          phone: '',
-          email: '',
-          postalCode: '',
-          address: '',
-          organizationType: '',
-          description: '',
-          website: '',
-          instagram: '',
-          twitter: ''
-        });
       } catch (error) {
-        console.error('プロフィール読み込みエラー:', error);
-      } finally {
+        console.error('LIFF初期化エラー:', error);
         setIsLoading(false);
       }
     };
 
-    loadProfile();
+    initLiff();
   }, []);
 
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSaving(true);
-
+  const loadProfile = async () => {
     try {
       const liffUser = await liffManager.getUserProfile();
       
@@ -85,37 +67,88 @@ export default function OrganizerProfilePage() {
         });
       }
 
-      // 主催者プロフィールを保存
-      if (profile?.id) {
-        await apiService.updateOrganizerProfile(profile.id, {
-          organizer_name: localProfile.organizerName,
-          contact_name: localProfile.contactName,
-          phone: localProfile.phone,
-          email: localProfile.email,
-          postal_code: localProfile.postalCode,
-          address: localProfile.address,
-          organization_type: localProfile.organizationType,
-          description: localProfile.description,
-          website: localProfile.website,
-          instagram: localProfile.instagram,
-          twitter: localProfile.twitter,
+      // 主催者プロフィールを取得
+      try {
+        const organizerProfile = await apiService.getOrganizerProfile(user.id) as OrganizerProfile;
+        setProfile(organizerProfile);
+        setLocalProfile({
+          organizerName: organizerProfile.organizer_name || '',
+          contactName: organizerProfile.contact_name || '',
+          phone: organizerProfile.phone || '',
+          email: organizerProfile.email || '',
+          postalCode: organizerProfile.postal_code || '',
+          address: organizerProfile.address || '',
+          organizationType: organizerProfile.organization_type || '',
+          description: organizerProfile.description || '',
+          website: organizerProfile.website || '',
+          instagram: organizerProfile.instagram || '',
+          twitter: organizerProfile.twitter || ''
         });
-      } else {
-        await apiService.createOrganizerProfile({
-          user_id: user.id,
-          organizer_name: localProfile.organizerName,
-          contact_name: localProfile.contactName,
-          phone: localProfile.phone,
-          email: localProfile.email,
-          postal_code: localProfile.postalCode,
-          address: localProfile.address,
-          organization_type: localProfile.organizationType,
-          description: localProfile.description,
-          website: localProfile.website,
-          instagram: localProfile.instagram,
-          twitter: localProfile.twitter,
+      } catch (err) {
+        // プロフィールが存在しない場合は初期値で設定
+        setProfile(null);
+        setLocalProfile({
+          organizerName: '',
+          contactName: liffUser.displayName,
+          phone: '',
+          email: '',
+          postalCode: '',
+          address: '',
+          organizationType: '',
+          description: '',
+          website: '',
+          instagram: '',
+          twitter: ''
         });
       }
+    } catch (err) {
+      console.error('Error loading organizer profile:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const saveProfile = async (profileData: Partial<OrganizerProfile>) => {
+    try {
+      const liffUser = await liffManager.getUserProfile();
+      const user: any = await apiService.getUserByLineId(liffUser.userId);
+
+      let savedProfile: OrganizerProfile;
+      if (profile?.id) {
+        savedProfile = await apiService.updateOrganizerProfile(profile.id, profileData) as OrganizerProfile;
+      } else {
+        savedProfile = await apiService.createOrganizerProfile({
+          user_id: user.id,
+          ...profileData,
+        }) as OrganizerProfile;
+      }
+
+      setProfile(savedProfile);
+      return savedProfile;
+    } catch (err) {
+      console.error('Error saving organizer profile:', err);
+      throw err;
+    }
+  };
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSaving(true);
+
+    try {
+      await saveProfile({
+        organizer_name: localProfile.organizerName,
+        contact_name: localProfile.contactName,
+        phone: localProfile.phone,
+        email: localProfile.email,
+        postal_code: localProfile.postalCode,
+        address: localProfile.address,
+        organization_type: localProfile.organizationType,
+        description: localProfile.description,
+        website: localProfile.website,
+        instagram: localProfile.instagram,
+        twitter: localProfile.twitter,
+      });
       
       alert('プロフィールを保存しました！');
     } catch (error) {
@@ -364,7 +397,7 @@ export default function OrganizerProfilePage() {
               </span>
             </div>
             
-            {profile.verification_status === 'not_submitted' && (
+            {(!profile || profile.verification_status === 'not_submitted') && (
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                 <p className="text-sm text-blue-800 mb-3">
                   認証を受けることで、より多くの出店者に信頼されるイベント主催者として活動できます。
@@ -379,7 +412,7 @@ export default function OrganizerProfilePage() {
               </div>
             )}
             
-            {profile.verification_status === 'pending' && (
+            {profile && profile.verification_status === 'pending' && (
               <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
                 <p className="text-sm text-yellow-800">
                   認証申請を審査中です。結果は数営業日以内にお知らせします。
@@ -387,7 +420,7 @@ export default function OrganizerProfilePage() {
               </div>
             )}
             
-            {profile.verification_status === 'approved' && (
+            {profile && profile.verification_status === 'approved' && (
               <div className="bg-green-50 border border-green-200 rounded-lg p-4">
                 <p className="text-sm text-green-800">
                   認証が完了しました！信頼できるイベント主催者として活動できます。
@@ -395,7 +428,7 @@ export default function OrganizerProfilePage() {
               </div>
             )}
             
-            {profile.verification_status === 'rejected' && (
+            {profile && profile.verification_status === 'rejected' && (
               <div className="bg-red-50 border border-red-200 rounded-lg p-4">
                 <p className="text-sm text-red-800 mb-3">
                   認証が拒否されました。書類を確認して再度申請してください。

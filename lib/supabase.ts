@@ -57,6 +57,7 @@ export interface OrganizerProfile {
   contact_name: string;
   phone?: string;
   email?: string;
+  postal_code?: string;
   address?: string;
   organization_type?: string;
   description?: string;
