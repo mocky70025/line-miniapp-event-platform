@@ -12,6 +12,7 @@ interface DocumentUploadProps {
   maxSize?: number; // MB
   onUpload: (file: File | null) => void;
   uploadedFile?: File | null;
+  uploadedUrl?: string;
   isUploading?: boolean;
 }
 
@@ -23,6 +24,7 @@ export default function DocumentUpload({
   maxSize = 10,
   onUpload,
   uploadedFile,
+  uploadedUrl,
   isUploading = false
 }: DocumentUploadProps) {
   const [dragActive, setDragActive] = useState(false);
@@ -115,7 +117,7 @@ export default function DocumentUpload({
           <p className="text-sm text-gray-600">{description}</p>
         </div>
 
-        {uploadedFile ? (
+        {(uploadedFile || uploadedUrl) ? (
           <div className="border border-green-200 bg-green-50 rounded-lg p-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
@@ -129,10 +131,19 @@ export default function DocumentUpload({
                   )}
                 </div>
                 <div>
-                  <p className="font-medium text-green-800">{uploadedFile.name}</p>
-                  <p className="text-sm text-green-600">
-                    {(uploadedFile.size / 1024 / 1024).toFixed(2)} MB
+                  <p className="font-medium text-green-800">
+                    {uploadedFile ? uploadedFile.name : 'アップロード済みファイル'}
                   </p>
+                  {uploadedFile && (
+                    <p className="text-sm text-green-600">
+                      {(uploadedFile.size / 1024 / 1024).toFixed(2)} MB
+                    </p>
+                  )}
+                  {uploadedUrl && (
+                    <p className="text-sm text-green-600">
+                      アップロード済み
+                    </p>
+                  )}
                   {isProcessing && (
                     <p className="text-xs text-green-600">
                       {uploading ? 'アップロード中...' : '処理中...'}

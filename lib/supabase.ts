@@ -40,6 +40,10 @@ export interface StoreProfile {
   website?: string;
   instagram?: string;
   twitter?: string;
+  business_license_url?: string;
+  tax_certificate_url?: string;
+  insurance_certificate_url?: string;
+  product_photos_url?: string;
   is_verified: boolean;
   verification_status: 'not_submitted' | 'pending' | 'approved' | 'rejected';
   created_at: string;

@@ -38,6 +38,12 @@ export default function StoreProfilePage() {
       taxCertificate: null as File | null,
       insuranceCertificate: null as File | null,
       productPhotos: null as File | null
+    },
+    imageUrls: {
+      businessLicense: '',
+      taxCertificate: '',
+      insuranceCertificate: '',
+      productPhotos: ''
     }
   });
 
@@ -124,6 +130,12 @@ export default function StoreProfilePage() {
         website: profile.website || '',
         instagram: profile.instagram || '',
         twitter: profile.twitter || '',
+        imageUrls: {
+          businessLicense: profile.business_license_url || '',
+          taxCertificate: profile.tax_certificate_url || '',
+          insuranceCertificate: profile.insurance_certificate_url || '',
+          productPhotos: profile.product_photos_url || ''
+        }
       }));
     }
   }, [profile]);
@@ -195,6 +207,10 @@ export default function StoreProfilePage() {
         website: localProfile.website,
         instagram: localProfile.instagram,
         twitter: localProfile.twitter,
+        business_license_url: localProfile.imageUrls.businessLicense,
+        tax_certificate_url: localProfile.imageUrls.taxCertificate,
+        insurance_certificate_url: localProfile.imageUrls.insuranceCertificate,
+        product_photos_url: localProfile.imageUrls.productPhotos,
       });
       
       alert('プロフィールを保存しました！');
@@ -236,6 +252,10 @@ export default function StoreProfilePage() {
           documents: {
             ...prev.documents,
             [documentType]: file
+          },
+          imageUrls: {
+            ...prev.imageUrls,
+            [documentType]: publicUrl
           }
         }));
         
@@ -487,6 +507,7 @@ export default function StoreProfilePage() {
             required={true}
             onUpload={handleDocumentUpload('businessLicense')}
             uploadedFile={localProfile.documents.businessLicense}
+            uploadedUrl={localProfile.imageUrls.businessLicense}
             isUploading={isSaving}
           />
           
@@ -496,6 +517,7 @@ export default function StoreProfilePage() {
             required={true}
             onUpload={handleDocumentUpload('taxCertificate')}
             uploadedFile={localProfile.documents.taxCertificate}
+            uploadedUrl={localProfile.imageUrls.taxCertificate}
             isUploading={isSaving}
           />
           
@@ -505,6 +527,7 @@ export default function StoreProfilePage() {
             required={false}
             onUpload={handleDocumentUpload('insuranceCertificate')}
             uploadedFile={localProfile.documents.insuranceCertificate}
+            uploadedUrl={localProfile.imageUrls.insuranceCertificate}
             isUploading={isSaving}
           />
           
@@ -515,6 +538,7 @@ export default function StoreProfilePage() {
             acceptedTypes={['image/*']}
             onUpload={handleDocumentUpload('productPhotos')}
             uploadedFile={localProfile.documents.productPhotos}
+            uploadedUrl={localProfile.imageUrls.productPhotos}
             isUploading={isSaving}
           />
         </div>
