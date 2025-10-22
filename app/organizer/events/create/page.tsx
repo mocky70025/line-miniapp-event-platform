@@ -153,70 +153,32 @@ export default function CreateEventPage() {
         return;
       }
 
-      alert('LIFFユーザー取得中...');
       const liffUser = await liffManager.getUserProfile();
-      
-      alert('ユーザー情報取得中...');
       const user: any = await apiService.getUserByLineId(liffUser.userId);
       
-      // イベントデータをSupabaseに保存
+      // イベントデータをSupabaseに保存（基本フィールドのみ）
       const eventData = {
         organizer_profile_id: user.id,
         title: form.eventName,
-        description: form.description,
+        description: form.description || '',
         date: form.startDate,
-        start_time: form.time,
-        end_time: form.time,
+        start_time: form.time || null,
+        end_time: form.time || null,
         location: form.venueName,
         address: form.address,
-        max_stores: 10, // デフォルト値
+        max_stores: 10,
         fee: parseFloat(form.fee) || 0,
-        category: form.genre,
+        category: form.genre || '',
         requirements: [],
-        contact: form.contactName,
+        contact: form.contactName || '',
         is_public: true,
-        application_deadline: form.applicationEndDate,
-        status: 'draft' as const,
-        
-        // 基本情報の拡張
-        event_name_kana: form.eventNameKana,
-        end_date: form.endDate,
-        display_period: form.displayPeriod,
-        period_note: form.periodNote,
-        time: form.time,
-        application_start_date: form.applicationStartDate,
-        application_end_date: form.applicationEndDate,
-        display_application_period: form.displayApplicationPeriod,
-        application_note: form.applicationNote,
-        lead_text: form.leadText,
-        
-        // 会場・連絡先情報
-        venue_name: form.venueName,
-        postal_code: form.postalCode,
-        city: form.city,
-        town: form.town,
-        street: form.street,
-        latitude: parseFloat(form.latitude) || null,
-        longitude: parseFloat(form.longitude) || null,
-        homepage_url: form.homepageUrl,
-        related_url: form.relatedUrl,
-        contact_name: form.contactName,
-        phone: form.phone,
-        email: form.email,
-        parking: form.parking,
-        fee_text: form.fee,
-        organizer: form.organizer,
-        
-        // 画像・その他
-        supplement_text: form.supplementText,
-        main_image_caption: form.mainImageCaption,
-        additional_image_captions: form.additionalImageCaptions
+        application_deadline: form.applicationEndDate || null,
+        status: 'draft' as const
       };
 
-      alert('イベントデータ送信中...');
       const result = await apiService.createEvent(eventData);
       
-      alert('イベントを作成しました！');
+      alert('イベントを保存しました！');
       router.push('/organizer/events/manage');
     } catch (error) {
       let errorMessage = 'Unknown error';
