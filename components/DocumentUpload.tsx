@@ -131,7 +131,7 @@ export default function DocumentUpload({
                 <div>
                   <p className="font-medium text-green-800">{uploadedFile.name}</p>
                   <p className="text-sm text-green-600">
-                    {uploadService.formatFileSize(uploadedFile.size)}
+                    {(uploadedFile.size / 1024 / 1024).toFixed(2)} MB
                   </p>
                   {isProcessing && (
                     <p className="text-xs text-green-600">
