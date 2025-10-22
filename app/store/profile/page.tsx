@@ -443,25 +443,6 @@ export default function StoreProfilePage() {
           </div>
         </Card>
 
-        {/* 保存ボタン */}
-        <div className="flex space-x-4">
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={() => router.push('/store')}
-            disabled={isSaving}
-          >
-            キャンセル
-          </Button>
-          <Button 
-            type="button" 
-            onClick={handleSave} 
-            className="flex-grow" 
-            disabled={isSaving}
-          >
-            {isSaving ? '保存中...' : 'プロフィールを保存'}
-          </Button>
-        </div>
       </form>
 
       {/* 書類アップロード（フォーム外） */}
@@ -569,6 +550,26 @@ export default function StoreProfilePage() {
           )}
         </div>
       </Card>
+
+      {/* 保存ボタン（一番下） */}
+      <div className="flex space-x-4 mt-6">
+        <Button
+          type="button"
+          variant="secondary"
+          onClick={() => router.push('/store')}
+          disabled={isSaving}
+        >
+          キャンセル
+        </Button>
+        <Button 
+          type="button" 
+          onClick={handleSave} 
+          className="flex-grow" 
+          disabled={isSaving}
+        >
+          {isSaving ? '保存中...' : 'プロフィールを保存'}
+        </Button>
+      </div>
     </div>
   );
 }
