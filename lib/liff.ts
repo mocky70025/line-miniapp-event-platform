@@ -13,6 +13,13 @@ class LiffManager {
   private userType: 'store' | 'organizer' | null = null;
 
   async init(userType: 'store' | 'organizer' = 'store'): Promise<boolean> {
+    // 異なるuserTypeの場合は再初期化する
+    if (this.isInitialized && this.userType !== userType) {
+      this.isInitialized = false;
+      this.userType = null;
+      this.user = null;
+    }
+    
     if (this.isInitialized && this.userType === userType) return true;
 
     try {

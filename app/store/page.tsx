@@ -18,19 +18,14 @@ export default function StoreHomePage() {
     const initLiff = async () => {
       try {
         // 出店者用のLIFF IDで初期化
-        console.log('Starting LIFF initialization for store...');
         const success = await liffManager.init('store');
-        console.log('LIFF init success:', success);
-        
         if (success && liffManager.isLoggedIn()) {
-          console.log('LIFF initialized and user is logged in');
           const profile = await liffManager.getUserProfile();
           setUser(profile);
           setIsLoggedIn(true);
         } else if (success) {
           // LIFF初期化は成功したがログインしていない
           console.log('LIFF initialized but not logged in');
-          setError('ログインが必要です。LINEアカウントでログインしてください。');
         } else {
           // LIFF初期化に失敗
           console.error('LIFF initialization failed');
