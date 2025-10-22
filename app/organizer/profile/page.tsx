@@ -7,27 +7,13 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import { apiService } from '@/lib/api';
+import { OrganizerProfile } from '@/lib/supabase';
 
-interface OrganizerProfile {
-  id?: string;
-  organizerName: string;
-  contactName: string;
-  phone: string;
-  email: string;
-  postalCode?: string;
-  address: string;
-  organizationType: string;
-  description: string;
-  website?: string;
-  instagram?: string;
-  twitter?: string;
-  isVerified: boolean;
-  verificationStatus: 'pending' | 'approved' | 'rejected' | 'not_submitted';
-  documents: {};
-}
 
 export default function OrganizerProfilePage() {
-  const [profile, setProfile] = useState<OrganizerProfile>({
+  const [profile, setProfile] = useState<OrganizerProfile | null>(null);
+  const [localProfile, setLocalProfile] = useState({
     organizerName: '',
     contactName: '',
     phone: '',
@@ -38,10 +24,7 @@ export default function OrganizerProfilePage() {
     description: '',
     website: '',
     instagram: '',
-    twitter: '',
-    isVerified: false,
-    verificationStatus: 'not_submitted',
-    documents: {}
+    twitter: ''
   });
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -59,25 +42,20 @@ export default function OrganizerProfilePage() {
         const liffUser = await liffManager.getUserProfile();
         setUser(liffUser);
         
-        // 実際のプロフィールデータを取得（現在は空の状態）
-        const currentProfile: OrganizerProfile = {
-          id: undefined,
+        // プロフィールデータをローカル状態に設定
+        setLocalProfile({
           organizerName: '',
           contactName: liffUser.displayName,
           phone: '',
           email: '',
+          postalCode: '',
           address: '',
           organizationType: '',
           description: '',
           website: '',
           instagram: '',
-          twitter: '',
-          isVerified: false,
-          verificationStatus: 'not_submitted',
-          documents: {}
-        };
-        
-        setProfile(currentProfile);
+          twitter: ''
+        });
       } catch (error) {
         console.error('プロフィール読み込みエラー:', error);
       } finally {
@@ -93,10 +71,52 @@ export default function OrganizerProfilePage() {
     setIsSaving(true);
 
     try {
-      // 実際のAPI呼び出し
-      console.log('保存するプロフィール:', profile);
+      const liffUser = await liffManager.getUserProfile();
       
-      // 成功時の処理
+      // ユーザーを取得または作成
+      let user: any;
+      try {
+        user = await apiService.getUserByLineId(liffUser.userId);
+      } catch (err) {
+        user = await apiService.createUser({
+          line_user_id: liffUser.userId,
+          user_type: 'organizer',
+          name: liffUser.displayName,
+        });
+      }
+
+      // 主催者プロフィールを保存
+      if (profile?.id) {
+        await apiService.updateOrganizerProfile(profile.id, {
+          organizer_name: localProfile.organizerName,
+          contact_name: localProfile.contactName,
+          phone: localProfile.phone,
+          email: localProfile.email,
+          postal_code: localProfile.postalCode,
+          address: localProfile.address,
+          organization_type: localProfile.organizationType,
+          description: localProfile.description,
+          website: localProfile.website,
+          instagram: localProfile.instagram,
+          twitter: localProfile.twitter,
+        });
+      } else {
+        await apiService.createOrganizerProfile({
+          user_id: user.id,
+          organizer_name: localProfile.organizerName,
+          contact_name: localProfile.contactName,
+          phone: localProfile.phone,
+          email: localProfile.email,
+          postal_code: localProfile.postalCode,
+          address: localProfile.address,
+          organization_type: localProfile.organizationType,
+          description: localProfile.description,
+          website: localProfile.website,
+          instagram: localProfile.instagram,
+          twitter: localProfile.twitter,
+        });
+      }
+      
       alert('プロフィールを保存しました！');
     } catch (error) {
       console.error('保存エラー:', error);
@@ -109,7 +129,7 @@ export default function OrganizerProfilePage() {
 
   // 郵便番号から住所を取得する関数
   const handlePostalCodeChange = async () => {
-    const postalCode = profile.postalCode?.replace(/[^\d]/g, '');
+    const postalCode = localProfile.postalCode?.replace(/[^\d]/g, '');
     if (postalCode && postalCode.length === 7) {
       try {
         const response = await fetch(`https://zipcloud.ibsnet.co.jp/api/search?zipcode=${postalCode}`);
@@ -118,7 +138,7 @@ export default function OrganizerProfilePage() {
         if (data.status === 200 && data.results && data.results.length > 0) {
           const result = data.results[0];
           const address = `${result.address1}${result.address2}${result.address3}`;
-          setProfile(prev => ({
+          setLocalProfile(prev => ({
             ...prev,
             address: address
           }));
@@ -135,10 +155,8 @@ export default function OrganizerProfilePage() {
       // 認証申請のAPI呼び出し
       console.log('認証申請:', profile);
       
-      setProfile(prev => ({
-        ...prev,
-        verificationStatus: 'pending'
-      }));
+        // 認証申請の処理は後で実装
+        console.log('認証申請を送信');
       
       alert('認証申請を送信しました。審査結果は数営業日以内にお知らせします。');
     } catch (error) {
@@ -150,7 +168,9 @@ export default function OrganizerProfilePage() {
   };
 
   const getVerificationStatusText = () => {
-    switch (profile.verificationStatus) {
+    if (!profile) return { text: '不明', color: 'text-gray-600', bg: 'bg-gray-100' };
+    
+    switch (profile.verification_status) {
       case 'not_submitted':
         return { text: '未申請', color: 'text-gray-600', bg: 'bg-gray-100' };
       case 'pending':
@@ -186,8 +206,8 @@ export default function OrganizerProfilePage() {
               <Input
                 id="contactName"
                 type="text"
-                value={profile.contactName}
-                onChange={(e) => setProfile(prev => ({ ...prev, contactName: e.target.value }))}
+                value={localProfile.contactName}
+                onChange={(e) => setLocalProfile(prev => ({ ...prev, contactName: e.target.value }))}
                 placeholder="担当者名"
                 className="placeholder:text-gray-400"
                 required
@@ -198,8 +218,8 @@ export default function OrganizerProfilePage() {
               <Input
                 id="phone"
                 type="tel"
-                value={profile.phone}
-                onChange={(e) => setProfile(prev => ({ ...prev, phone: e.target.value }))}
+                value={localProfile.phone}
+                onChange={(e) => setLocalProfile(prev => ({ ...prev, phone: e.target.value }))}
                 placeholder="03-xxxx-xxxx"
                 className="placeholder:text-gray-400"
                 required
@@ -210,8 +230,8 @@ export default function OrganizerProfilePage() {
               <Input
                 id="email"
                 type="email"
-                value={profile.email}
-                onChange={(e) => setProfile(prev => ({ ...prev, email: e.target.value }))}
+                value={localProfile.email}
+                onChange={(e) => setLocalProfile(prev => ({ ...prev, email: e.target.value }))}
                 placeholder="your@example.com"
                 className="placeholder:text-gray-400"
                 required
@@ -229,8 +249,8 @@ export default function OrganizerProfilePage() {
               <Input
                 id="organizerName"
                 type="text"
-                value={profile.organizerName}
-                onChange={(e) => setProfile(prev => ({ ...prev, organizerName: e.target.value }))}
+                value={localProfile.organizerName}
+                onChange={(e) => setLocalProfile(prev => ({ ...prev, organizerName: e.target.value }))}
                 placeholder="組織名または会社名"
                 className="placeholder:text-gray-400"
                 required
@@ -240,8 +260,8 @@ export default function OrganizerProfilePage() {
               <label htmlFor="organizationType" className="block text-sm font-medium text-gray-700 mb-1">組織形態</label>
               <select
                 id="organizationType"
-                value={profile.organizationType}
-                onChange={(e) => setProfile(prev => ({ ...prev, organizationType: e.target.value }))}
+                value={localProfile.organizationType}
+                onChange={(e) => setLocalProfile(prev => ({ ...prev, organizationType: e.target.value }))}
                 className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 required
               >
@@ -260,8 +280,8 @@ export default function OrganizerProfilePage() {
               <Input
                 id="postalCode"
                 type="text"
-                value={profile.postalCode || ''}
-                onChange={(e) => setProfile(prev => ({ ...prev, postalCode: e.target.value }))}
+                value={localProfile.postalCode || ''}
+                onChange={(e) => setLocalProfile(prev => ({ ...prev, postalCode: e.target.value }))}
                 placeholder="123-4567"
                 className="placeholder:text-gray-400"
                 maxLength={8}
@@ -274,8 +294,8 @@ export default function OrganizerProfilePage() {
               <Input
                 id="address"
                 type="text"
-                value={profile.address}
-                onChange={(e) => setProfile(prev => ({ ...prev, address: e.target.value }))}
+                value={localProfile.address}
+                onChange={(e) => setLocalProfile(prev => ({ ...prev, address: e.target.value }))}
                 placeholder="組織の住所"
                 className="placeholder:text-gray-400"
                 required
@@ -285,8 +305,8 @@ export default function OrganizerProfilePage() {
               <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">組織説明</label>
               <textarea
                 id="description"
-                value={profile.description}
-                onChange={(e) => setProfile(prev => ({ ...prev, description: e.target.value }))}
+                value={localProfile.description}
+                onChange={(e) => setLocalProfile(prev => ({ ...prev, description: e.target.value }))}
                 rows={4}
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm p-2 placeholder:text-gray-400"
                 placeholder="組織の活動内容や特徴を記述してください。"
@@ -298,8 +318,8 @@ export default function OrganizerProfilePage() {
               <Input
                 id="website"
                 type="url"
-                value={profile.website}
-                onChange={(e) => setProfile(prev => ({ ...prev, website: e.target.value }))}
+                value={localProfile.website}
+                onChange={(e) => setLocalProfile(prev => ({ ...prev, website: e.target.value }))}
                 placeholder="https://your-organization.com"
                 className="placeholder:text-gray-400"
               />
@@ -309,8 +329,8 @@ export default function OrganizerProfilePage() {
               <Input
                 id="instagram"
                 type="text"
-                value={profile.instagram}
-                onChange={(e) => setProfile(prev => ({ ...prev, instagram: e.target.value }))}
+                value={localProfile.instagram}
+                onChange={(e) => setLocalProfile(prev => ({ ...prev, instagram: e.target.value }))}
                 placeholder="@your_instagram"
                 className="placeholder:text-gray-400"
               />
@@ -320,8 +340,8 @@ export default function OrganizerProfilePage() {
               <Input
                 id="twitter"
                 type="text"
-                value={profile.twitter}
-                onChange={(e) => setProfile(prev => ({ ...prev, twitter: e.target.value }))}
+                value={localProfile.twitter}
+                onChange={(e) => setLocalProfile(prev => ({ ...prev, twitter: e.target.value }))}
                 placeholder="@your_twitter"
                 className="placeholder:text-gray-400"
               />
@@ -336,7 +356,7 @@ export default function OrganizerProfilePage() {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
-                <div className={`w-4 h-4 rounded-full ${profile.isVerified ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                <div className={`w-4 h-4 rounded-full ${profile?.is_verified ? 'bg-green-500' : 'bg-gray-300'}`}></div>
                 <span className="font-medium">認証ステータス</span>
               </div>
               <span className={`px-3 py-1 rounded-full text-sm font-medium ${getVerificationStatusText().bg} ${getVerificationStatusText().color}`}>
@@ -344,7 +364,7 @@ export default function OrganizerProfilePage() {
               </span>
             </div>
             
-            {profile.verificationStatus === 'not_submitted' && (
+            {profile.verification_status === 'not_submitted' && (
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                 <p className="text-sm text-blue-800 mb-3">
                   認証を受けることで、より多くの出店者に信頼されるイベント主催者として活動できます。
@@ -359,7 +379,7 @@ export default function OrganizerProfilePage() {
               </div>
             )}
             
-            {profile.verificationStatus === 'pending' && (
+            {profile.verification_status === 'pending' && (
               <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
                 <p className="text-sm text-yellow-800">
                   認証申請を審査中です。結果は数営業日以内にお知らせします。
@@ -367,7 +387,7 @@ export default function OrganizerProfilePage() {
               </div>
             )}
             
-            {profile.verificationStatus === 'approved' && (
+            {profile.verification_status === 'approved' && (
               <div className="bg-green-50 border border-green-200 rounded-lg p-4">
                 <p className="text-sm text-green-800">
                   認証が完了しました！信頼できるイベント主催者として活動できます。
@@ -375,7 +395,7 @@ export default function OrganizerProfilePage() {
               </div>
             )}
             
-            {profile.verificationStatus === 'rejected' && (
+            {profile.verification_status === 'rejected' && (
               <div className="bg-red-50 border border-red-200 rounded-lg p-4">
                 <p className="text-sm text-red-800 mb-3">
                   認証が拒否されました。書類を確認して再度申請してください。
