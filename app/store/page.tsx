@@ -18,18 +18,22 @@ export default function StoreHomePage() {
     const initLiff = async () => {
       try {
         // 出店者用のLIFF IDで初期化
+        console.log('Starting LIFF initialization for store...');
         const success = await liffManager.init('store');
         console.log('LIFF init success:', success);
         
         if (success && liffManager.isLoggedIn()) {
+          console.log('LIFF initialized and user is logged in');
           const profile = await liffManager.getUserProfile();
           setUser(profile);
           setIsLoggedIn(true);
         } else if (success) {
           // LIFF初期化は成功したがログインしていない
           console.log('LIFF initialized but not logged in');
+          setError('ログインが必要です。LINEアカウントでログインしてください。');
         } else {
           // LIFF初期化に失敗
+          console.error('LIFF initialization failed');
           setError('LIFF初期化に失敗しました。環境変数 NEXT_PUBLIC_LIFF_ID_STORE が設定されているか確認してください。');
         }
       } catch (error) {
@@ -60,12 +64,21 @@ export default function StoreHomePage() {
           <p className="text-sm text-gray-500 mb-6">
             環境変数が正しく設定されているか確認してください。
           </p>
-          <Button 
-            onClick={() => window.location.reload()}
-            className="w-full"
-          >
-            再読み込み
-          </Button>
+          <div className="space-y-2">
+            <Button 
+              onClick={() => window.location.reload()}
+              className="w-full"
+            >
+              再読み込み
+            </Button>
+            <Button 
+              onClick={() => liffManager.login('store')}
+              variant="secondary"
+              className="w-full"
+            >
+              LINEでログイン
+            </Button>
+          </div>
         </Card>
       </div>
     );

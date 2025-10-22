@@ -11,23 +11,34 @@ export default function OrganizerHomePage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
   useEffect(() => {
     const initLiff = async () => {
       try {
         // 主催者用のLIFF IDで初期化
+        console.log('Starting LIFF initialization for organizer...');
         const success = await liffManager.init('organizer');
+        console.log('LIFF init success:', success);
+        
         if (success && liffManager.isLoggedIn()) {
+          console.log('LIFF initialized and user is logged in');
           const profile = await liffManager.getUserProfile();
           setUser(profile);
           setIsLoggedIn(true);
+        } else if (success) {
+          // LIFF初期化は成功したがログインしていない
+          console.log('LIFF initialized but not logged in');
+          setError('ログインが必要です。LINEアカウントでログインしてください。');
         } else {
-          // ログインが必要
-          await liffManager.login('organizer');
+          // LIFF初期化に失敗
+          console.error('LIFF initialization failed');
+          setError('LIFF初期化に失敗しました。環境変数 NEXT_PUBLIC_LIFF_ID_ORGANIZER が設定されているか確認してください。');
         }
       } catch (error) {
         console.error('LIFF initialization failed:', error);
+        setError(`LIFF初期化エラー: ${error instanceof Error ? error.message : '不明なエラー'}`);
       } finally {
         setIsLoading(false);
       }
@@ -40,6 +51,35 @@ export default function OrganizerHomePage() {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <LoadingSpinner />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-screen p-4">
+        <Card className="w-full max-w-md text-center">
+          <h2 className="text-xl font-bold mb-4 text-red-600">エラーが発生しました</h2>
+          <p className="text-gray-600 mb-4">{error}</p>
+          <p className="text-sm text-gray-500 mb-6">
+            環境変数が正しく設定されているか確認してください。
+          </p>
+          <div className="space-y-2">
+            <Button 
+              onClick={() => window.location.reload()}
+              className="w-full"
+            >
+              再読み込み
+            </Button>
+            <Button 
+              onClick={() => liffManager.login('organizer')}
+              variant="secondary"
+              className="w-full"
+            >
+              LINEでログイン
+            </Button>
+          </div>
+        </Card>
       </div>
     );
   }
