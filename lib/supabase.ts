@@ -100,6 +100,43 @@ export interface Event {
   is_public: boolean;
   application_deadline?: string;
   status: 'draft' | 'published' | 'closed' | 'completed';
+  
+  // 基本情報の拡張
+  event_name_kana?: string;
+  end_date?: string;
+  display_period?: string;
+  period_note?: string;
+  time?: string;
+  application_start_date?: string;
+  application_end_date?: string;
+  display_application_period?: string;
+  application_note?: string;
+  lead_text?: string;
+  
+  // 会場・連絡先情報
+  venue_name?: string;
+  postal_code?: string;
+  city?: string;
+  town?: string;
+  street?: string;
+  latitude?: number;
+  longitude?: number;
+  homepage_url?: string;
+  related_url?: string;
+  contact_name?: string;
+  phone?: string;
+  email?: string;
+  parking?: string;
+  fee_text?: string;
+  organizer?: string;
+  
+  // 画像・その他
+  supplement_text?: string;
+  main_image_url?: string;
+  main_image_caption?: string;
+  additional_image_urls?: string[];
+  additional_image_captions?: string[];
+  
   created_at: string;
   updated_at: string;
 }
@@ -326,6 +363,8 @@ export class SupabaseService {
   }
 
   async createEvent(eventData: Partial<Event>): Promise<Event | null> {
+    console.log('SupabaseService createEvent called with:', eventData);
+    
     const { data, error } = await supabase
       .from('events')
       .insert([eventData])
@@ -336,6 +375,8 @@ export class SupabaseService {
       console.error('Error creating event:', error);
       return null;
     }
+    
+    console.log('Event created successfully in Supabase:', data);
     return data;
   }
 

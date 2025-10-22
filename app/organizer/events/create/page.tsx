@@ -1,59 +1,124 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import DocumentUpload from '@/components/DocumentUpload';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import { liffManager } from '@/lib/liff';
+import { apiService } from '@/lib/api';
 
 interface EventForm {
-  title: string;
+  // 基本情報
+  genre: string;
+  eventName: string;
+  eventNameKana: string;
+  startDate: string;
+  endDate: string;
+  displayPeriod: string;
+  periodNote: string;
+  time: string;
+  applicationStartDate: string;
+  applicationEndDate: string;
+  displayApplicationPeriod: string;
+  applicationNote: string;
+  leadText: string;
   description: string;
-  date: string;
-  startTime: string;
-  endTime: string;
-  location: string;
+  
+  // 会場・連絡先
+  venueName: string;
+  postalCode: string;
   address: string;
-  maxStores: number;
-  fee: number;
-  requirements: string[];
-  contact: string;
-  category: string;
-  isPublic: boolean;
-  applicationDeadline: string;
-  documents: {
-    venueContract?: File | null;
-    insuranceCertificate?: File | null;
-    eventPlan?: File | null;
-  };
+  city: string;
+  town: string;
+  street: string;
+  latitude: string;
+  longitude: string;
+  homepageUrl: string;
+  relatedUrl: string;
+  contactName: string;
+  phone: string;
+  email: string;
+  parking: string;
+  fee: string;
+  organizer: string;
+  
+  // 画像・その他
+  supplementText: string;
+  mainImage: File | null;
+  mainImageCaption: string;
+  additionalImages: (File | null)[];
+  additionalImageCaptions: string[];
 }
 
 export default function CreateEventPage() {
   const [form, setForm] = useState<EventForm>({
-    title: '',
+    // 基本情報
+    genre: '',
+    eventName: '',
+    eventNameKana: '',
+    startDate: '',
+    endDate: '',
+    displayPeriod: '',
+    periodNote: '',
+    time: '',
+    applicationStartDate: '',
+    applicationEndDate: '',
+    displayApplicationPeriod: '',
+    applicationNote: '',
+    leadText: '',
     description: '',
-    date: '',
-    startTime: '',
-    endTime: '',
-    location: '',
+    
+    // 会場・連絡先
+    venueName: '',
+    postalCode: '',
     address: '',
-    maxStores: 10,
-    fee: 0,
-    requirements: [],
-    contact: '',
-    category: '',
-    isPublic: true,
-    applicationDeadline: '',
-    documents: {
-      venueContract: null,
-      insuranceCertificate: null,
-      eventPlan: null
-    }
+    city: '',
+    town: '',
+    street: '',
+    latitude: '',
+    longitude: '',
+    homepageUrl: '',
+    relatedUrl: '',
+    contactName: '',
+    phone: '',
+    email: '',
+    parking: '',
+    fee: '',
+    organizer: '',
+    
+    // 画像・その他
+    supplementText: '',
+    mainImage: null,
+    mainImageCaption: '',
+    additionalImages: [null, null, null],
+    additionalImageCaptions: ['', '', '']
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [newRequirement, setNewRequirement] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+  const [user, setUser] = useState<any>(null);
   const router = useRouter();
+
+  useEffect(() => {
+    const initLiff = async () => {
+      try {
+        const success = await liffManager.init('organizer');
+        if (success && liffManager.isLoggedIn()) {
+          const liffUser = await liffManager.getUserProfile();
+          setUser(liffUser);
+        } else {
+          await liffManager.login('organizer');
+        }
+      } catch (error) {
+        console.error('LIFF初期化エラー:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    initLiff();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -61,15 +126,70 @@ export default function CreateEventPage() {
 
     try {
       // 必須項目のチェック
-      if (!form.title || !form.date || !form.location || !form.address) {
+      if (!form.eventName || !form.startDate || !form.venueName || !form.address) {
         alert('必須項目を入力してください。');
         return;
       }
 
-      // 実際のAPI呼び出し
-      console.log('イベント作成:', form);
+      const liffUser = await liffManager.getUserProfile();
+      const user = await apiService.getUserByLineId(liffUser.userId);
       
-      // 成功時の処理
+      // イベントデータをSupabaseに保存
+      const eventData = {
+        organizer_profile_id: user.id,
+        title: form.eventName,
+        description: form.description,
+        date: form.startDate,
+        start_time: form.time,
+        end_time: form.time,
+        location: form.venueName,
+        address: form.address,
+        max_stores: 10, // デフォルト値
+        fee: parseFloat(form.fee) || 0,
+        category: form.genre,
+        requirements: [],
+        contact: form.contactName,
+        is_public: true,
+        application_deadline: form.applicationEndDate,
+        status: 'draft' as const,
+        
+        // 基本情報の拡張
+        event_name_kana: form.eventNameKana,
+        end_date: form.endDate,
+        display_period: form.displayPeriod,
+        period_note: form.periodNote,
+        time: form.time,
+        application_start_date: form.applicationStartDate,
+        application_end_date: form.applicationEndDate,
+        display_application_period: form.displayApplicationPeriod,
+        application_note: form.applicationNote,
+        lead_text: form.leadText,
+        
+        // 会場・連絡先情報
+        venue_name: form.venueName,
+        postal_code: form.postalCode,
+        city: form.city,
+        town: form.town,
+        street: form.street,
+        latitude: parseFloat(form.latitude) || null,
+        longitude: parseFloat(form.longitude) || null,
+        homepage_url: form.homepageUrl,
+        related_url: form.relatedUrl,
+        contact_name: form.contactName,
+        phone: form.phone,
+        email: form.email,
+        parking: form.parking,
+        fee_text: form.fee,
+        organizer: form.organizer,
+        
+        // 画像・その他
+        supplement_text: form.supplementText,
+        main_image_caption: form.mainImageCaption,
+        additional_image_captions: form.additionalImageCaptions
+      };
+
+      await apiService.createEvent(eventData);
+      
       alert('イベントを作成しました！');
       router.push('/organizer/events/manage');
     } catch (error) {

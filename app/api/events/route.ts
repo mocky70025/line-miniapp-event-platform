@@ -34,6 +34,8 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
+    console.log('Received event data:', body);
+
     const { 
       organizer_profile_id, 
       title, 
@@ -49,7 +51,38 @@ export async function POST(request: NextRequest) {
       requirements, 
       contact, 
       is_public, 
-      application_deadline 
+      application_deadline,
+      // 基本情報の拡張
+      event_name_kana,
+      end_date,
+      display_period,
+      period_note,
+      time,
+      application_start_date,
+      application_end_date,
+      display_application_period,
+      application_note,
+      lead_text,
+      // 会場・連絡先情報
+      venue_name,
+      postal_code,
+      city,
+      town,
+      street,
+      latitude,
+      longitude,
+      homepage_url,
+      related_url,
+      contact_name,
+      phone,
+      email,
+      parking,
+      fee_text,
+      organizer,
+      // 画像・その他
+      supplement_text,
+      main_image_caption,
+      additional_image_captions
     } = body;
 
     if (!organizer_profile_id || !title || !date) {
@@ -75,14 +108,51 @@ export async function POST(request: NextRequest) {
       is_public: is_public !== undefined ? is_public : true,
       application_deadline,
       status: 'draft' as const,
+      
+      // 基本情報の拡張
+      event_name_kana,
+      end_date,
+      display_period,
+      period_note,
+      time,
+      application_start_date,
+      application_end_date,
+      display_application_period,
+      application_note,
+      lead_text,
+      
+      // 会場・連絡先情報
+      venue_name,
+      postal_code,
+      city,
+      town,
+      street,
+      latitude,
+      longitude,
+      homepage_url,
+      related_url,
+      contact_name,
+      phone,
+      email,
+      parking,
+      fee_text,
+      organizer,
+      
+      // 画像・その他
+      supplement_text,
+      main_image_caption,
+      additional_image_captions
     };
 
+    console.log('Creating event with data:', eventData);
     const event = await supabaseService.createEvent(eventData);
     
     if (!event) {
+      console.error('Failed to create event');
       return NextResponse.json({ error: 'Failed to create event' }, { status: 500 });
     }
 
+    console.log('Event created successfully:', event);
     return NextResponse.json(event, { status: 201 });
   } catch (error) {
     console.error('Error creating event:', error);
