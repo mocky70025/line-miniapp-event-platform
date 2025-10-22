@@ -14,7 +14,7 @@ export default function StoreLayout({
 }) {
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="bg-line-green text-white p-4 text-center">
+      <div className="bg-primary-600 text-white p-4 text-center">
         <h1 className="text-lg font-bold">出店者向け</h1>
       </div>
       {children}
