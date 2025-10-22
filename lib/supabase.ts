@@ -33,7 +33,6 @@ export interface StoreProfile {
   contact_name: string;
   phone?: string;
   email?: string;
-  postal_code?: string;
   address?: string;
   business_type?: string;
   description?: string;
