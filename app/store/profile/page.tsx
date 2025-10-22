@@ -3,21 +3,22 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { liffManager } from '@/lib/liff';
-import { useStoreProfile } from '@/hooks/useProfile';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import DocumentUpload from '@/components/DocumentUpload';
+import { apiService } from '@/lib/api';
+import { StoreProfile } from '@/lib/supabase';
 
 export default function StoreProfilePage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [profile, setProfile] = useState<StoreProfile | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
-
-  // フックを使用してプロフィールを管理
-  const { profile, loading, error, saveProfile } = useStoreProfile();
 
   // ローカル状態
   const [localProfile, setLocalProfile] = useState({
@@ -47,20 +48,64 @@ export default function StoreProfilePage() {
           const liffUser = await liffManager.getUserProfile();
           setUser(liffUser);
           setIsLoggedIn(true);
+          
+          // LIFF初期化が成功したらプロフィールを読み込む
+          await loadProfile();
         } else if (success) {
           // LIFF初期化は成功したがログインしていない
           console.log('LIFF initialized but not logged in');
+          setLoading(false);
         } else {
           // LIFF初期化に失敗
           console.error('LIFF initialization failed');
+          setError('LIFF初期化に失敗しました');
+          setLoading(false);
         }
       } catch (error) {
         console.error('LIFF初期化エラー:', error);
+        setError('LIFF初期化エラーが発生しました');
+        setLoading(false);
       }
     };
 
     initLiff();
   }, []);
+
+  const loadProfile = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const liffUser = await liffManager.getUserProfile();
+      
+      // まずユーザーを取得または作成
+      let user: any;
+      try {
+        user = await apiService.getUserByLineId(liffUser.userId);
+      } catch (err) {
+        // ユーザーが存在しない場合は作成
+        user = await apiService.createUser({
+          line_user_id: liffUser.userId,
+          user_type: 'store',
+          name: liffUser.displayName,
+        });
+      }
+
+      // 店舗プロフィールを取得
+      try {
+        const storeProfile = await apiService.getStoreProfile(user.id) as StoreProfile;
+        setProfile(storeProfile);
+      } catch (err) {
+        // プロフィールが存在しない場合は空の状態
+        setProfile(null);
+      }
+    } catch (err) {
+      console.error('Error loading store profile:', err);
+      setError(err instanceof Error ? err.message : 'Unknown error');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // プロフィールデータをローカル状態に反映
   useEffect(() => {
@@ -80,6 +125,34 @@ export default function StoreProfilePage() {
       }));
     }
   }, [profile]);
+
+  const saveProfile = async (profileData: Partial<StoreProfile>) => {
+    try {
+      setError(null);
+
+      const liffUser = await liffManager.getUserProfile();
+      const user: any = await apiService.getUserByLineId(liffUser.userId);
+
+      let savedProfile: StoreProfile;
+      if (profile?.id) {
+        // 既存のプロフィールを更新
+        savedProfile = await apiService.updateStoreProfile(profile.id, profileData) as StoreProfile;
+      } else {
+        // 新しいプロフィールを作成
+        savedProfile = await apiService.createStoreProfile({
+          user_id: user.id,
+          ...profileData,
+        }) as StoreProfile;
+      }
+
+      setProfile(savedProfile);
+      return savedProfile;
+    } catch (err) {
+      console.error('Error saving store profile:', err);
+      setError(err instanceof Error ? err.message : 'Unknown error');
+      throw err;
+    }
+  };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -3,18 +3,19 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { liffManager } from '@/lib/liff';
-import { usePublishedEvents } from '@/hooks/useEvents';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import { apiService } from '@/lib/api';
+import { Event } from '@/lib/supabase';
 
 export default function StoreEventsPage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState<any>(null);
+  const [events, setEvents] = useState<Event[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
-
-  // フックを使用して公開イベントを取得
-  const { events, loading, error } = usePublishedEvents();
 
   useEffect(() => {
     const initLiff = async () => {
@@ -24,20 +25,42 @@ export default function StoreEventsPage() {
           const liffUser = await liffManager.getUserProfile();
           setUser(liffUser);
           setIsLoggedIn(true);
+          
+          // LIFF初期化が成功したらイベントを読み込む
+          await loadEvents();
         } else if (success) {
           // LIFF初期化は成功したがログインしていない
           console.log('LIFF initialized but not logged in');
+          setLoading(false);
         } else {
           // LIFF初期化に失敗
           console.error('LIFF initialization failed');
+          setError('LIFF初期化に失敗しました');
+          setLoading(false);
         }
       } catch (error) {
         console.error('LIFF初期化エラー:', error);
+        setError('LIFF初期化エラーが発生しました');
+        setLoading(false);
       }
     };
 
     initLiff();
   }, []);
+
+  const loadEvents = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const eventsData = await apiService.getPublishedEvents() as Event[];
+      setEvents(eventsData);
+    } catch (err) {
+      console.error('Error loading events:', err);
+      setError(err instanceof Error ? err.message : 'Unknown error');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
