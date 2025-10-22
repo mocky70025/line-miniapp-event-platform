@@ -307,7 +307,8 @@ export default function StoreProfilePage() {
 
       <form onSubmit={(e) => {
         e.preventDefault();
-        handleSave(e);
+        // フォーム送信を完全に防ぐ
+        return false;
       }} className="space-y-6">
         {/* 基本情報 */}
         <Card className="p-6">
@@ -558,7 +559,12 @@ export default function StoreProfilePage() {
           >
             キャンセル
           </Button>
-          <Button type="submit" className="flex-grow" disabled={isSaving}>
+          <Button 
+            type="button" 
+            onClick={handleSave} 
+            className="flex-grow" 
+            disabled={isSaving}
+          >
             {isSaving ? '保存中...' : 'プロフィールを保存'}
           </Button>
         </div>
