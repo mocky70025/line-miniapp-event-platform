@@ -157,7 +157,7 @@ export default function CreateEventPage() {
       const user: any = await apiService.getUserByLineId(liffUser.userId);
       
       // 主催者プロフィールを取得
-      let organizerProfile;
+      let organizerProfile: any;
       try {
         organizerProfile = await apiService.getOrganizerProfile(user.id);
       } catch (err) {
