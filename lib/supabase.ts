@@ -364,20 +364,33 @@ export class SupabaseService {
 
   async createEvent(eventData: Partial<Event>): Promise<Event | null> {
     console.log('SupabaseService createEvent called with:', eventData);
+    console.log('Supabase client URL:', process.env.NEXT_PUBLIC_SUPABASE_URL);
+    console.log('Supabase client key exists:', !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
     
-    const { data, error } = await supabase
-      .from('events')
-      .insert([eventData])
-      .select()
-      .single();
+    try {
+      const { data, error } = await supabase
+        .from('events')
+        .insert([eventData])
+        .select()
+        .single();
 
-    if (error) {
-      console.error('Error creating event:', error);
+      if (error) {
+        console.error('Supabase error creating event:', error);
+        console.error('Error details:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code
+        });
+        return null;
+      }
+      
+      console.log('Event created successfully in Supabase:', data);
+      return data;
+    } catch (err) {
+      console.error('Exception in createEvent:', err);
       return null;
     }
-    
-    console.log('Event created successfully in Supabase:', data);
-    return data;
   }
 
   async updateEvent(eventId: string, updates: Partial<Event>): Promise<Event | null> {
