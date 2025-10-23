@@ -148,8 +148,11 @@ export async function POST(request: NextRequest) {
     const event = await supabaseService.createEvent(eventData);
     
     if (!event) {
-      console.error('Failed to create event');
-      return NextResponse.json({ error: 'Failed to create event in database' }, { status: 500 });
+      console.error('Failed to create event - supabaseService returned null');
+      return NextResponse.json({ 
+        error: 'Failed to create event in database',
+        details: 'supabaseService.createEvent returned null'
+      }, { status: 500 });
     }
 
     console.log('Event created successfully:', event);
@@ -161,7 +164,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ 
       error: 'Internal server error', 
       details: errorMessage,
-      fullError: errorDetails 
+      fullError: errorDetails,
+      timestamp: new Date().toISOString()
     }, { status: 500 });
   }
 }

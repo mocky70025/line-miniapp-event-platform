@@ -156,9 +156,18 @@ export default function CreateEventPage() {
       const liffUser = await liffManager.getUserProfile();
       const user: any = await apiService.getUserByLineId(liffUser.userId);
       
+      // 主催者プロフィールを取得
+      let organizerProfile;
+      try {
+        organizerProfile = await apiService.getOrganizerProfile(user.id);
+      } catch (err) {
+        alert('主催者プロフィールが見つかりません。まずプロフィール設定を完了してください。');
+        return;
+      }
+      
       // イベントデータをSupabaseに保存（基本フィールドのみ）
       const eventData = {
-        organizer_profile_id: user.id,
+        organizer_profile_id: organizerProfile.id,
         title: form.eventName,
         description: form.description || '',
         date: form.startDate,
